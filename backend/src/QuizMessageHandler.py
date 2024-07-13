@@ -22,19 +22,23 @@ def check_name(name):
 
 class QuizMessageHandler(BaseMessageHandler):
 
-    async def broadcast(self, message):
+    async def broadcast(self, message, skip_players = False):
         if self.clients:
-            self.logger.info("broadcasting %s to %d clients", message, len(self.clients))
-            tasks = [asyncio.create_task(self.comms.send(ws, message)) for ws in self.clients]
-            await asyncio.wait(tasks)
+            tasks = [asyncio.create_task(self.comms.send(ws, message))
+                     for ws, client in self.clients.items()
+                     if not skip_players or client.role != ClientRole.Player]
+            if tasks:
+                self.logger.info("broadcasting %s to %d clients", message, len(tasks))
+                await asyncio.wait(tasks)
 
     async def _send_status_message(self):
         msg = {}
+        msg["type"] = "status"
         msg["host_present"] = any(client.id == self.quiz.host for client in self.clients.values())
         msg["num_players"] = sum(1 for client in self.clients.values()
                                  if client.role == ClientRole.Player)
 
-        await self.broadcast(jsonpickle.encode(msg, unpicklable=False))
+        await self.broadcast(jsonpickle.encode(msg, unpicklable=False), skip_players=True)
 
     async def create_quiz(self, host):
         check_name(host)
@@ -91,6 +95,8 @@ class QuizMessageHandler(BaseMessageHandler):
         self.clients = updated_clients
 
         self.db.clear_quiz_for_connection(self.connection)
+
+        await self._send_status_message()
 
     def fetch_quiz(self, quiz_id):
         self.quiz = self.db.quiz_access(quiz_id)
