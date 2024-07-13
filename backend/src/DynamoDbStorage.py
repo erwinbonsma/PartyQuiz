@@ -1,6 +1,6 @@
 import boto3
 import logging
-from Common import Config
+from Common import Client, ClientRole, Config
 
 logger = logging.getLogger('backend.dynamodb')
 
@@ -89,10 +89,6 @@ class DynamoDbQuiz:
         self.__items = None
 
     @property
-    def quiz_id(self):
-        return self.quiz_id
-
-    @property
     def host(self):
         return self.__instance_item["Host"]["S"]
 
@@ -124,24 +120,27 @@ class DynamoDbQuiz:
             for item in self.__items:
                 skey = item["SKEY"]["S"]
                 if skey.startswith("Conn#"):
-                    self.__clients[skey[5:]] = item["ClientId"]["S"]
+                    self.__clients[skey[5:]] = Client(
+                        id = item["ClientId"]["S"],
+                        role = ClientRole(int(item["Role"]["S"]))
+                    )
 
         return self.__clients
 
-    def add_client(self, connection, client_id):
+    def add_client(self, connection, client_id, role):
         try:
             self.client.put_item(
                 TableName = Config.MAIN_TABLE,
                 Item = {
                     "PKEY": { "S": f"Quiz#{self.quiz_id}" },
                     "SKEY": { "S": f"Conn#{connection}" },
-                    "ClientId": { "S": client_id }
-                },
-                ConditionExpression = "attribute_not_exists(PKEY)"
+                    "ClientId": { "S": client_id },
+                    "Role": { "S": str(role) }
+                }
             )
 
             clients = self.clients()
-            clients[connection] = client_id
+            clients[connection] = Client(client_id, role)
 
             return clients
         except Exception as e:

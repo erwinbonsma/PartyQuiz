@@ -1,7 +1,8 @@
 import asyncio
+import jsonpickle
 import random
 from BaseMessageHandler import ErrorCode, BaseMessageHandler, HandlerException, ok_message
-from Common import Config
+from Common import Config, ClientRole
 
 def create_quiz_id():
     return ''.join(chr(random.randint(ord('A'), ord('Z'))) for _ in range(4))
@@ -27,10 +28,18 @@ class QuizMessageHandler(BaseMessageHandler):
             tasks = [asyncio.create_task(self.comms.send(ws, message)) for ws in self.clients]
             await asyncio.wait(tasks)
 
+    async def _send_status_message(self):
+        msg = {}
+        msg["host_present"] = any(client.id == self.quiz.host for client in self.clients.values())
+        msg["num_players"] = sum(1 for client in self.clients.values()
+                                 if client.role == ClientRole.Player)
+
+        await self.broadcast(jsonpickle.encode(msg, unpicklable=False))
+
     async def create_quiz(self, host):
         check_name(host)
 
-        for _ in range(3): # Multiple attempts to handle ID clash
+        for _ in range(Config.MAX_ATTEMPTS): # Multiple attempts to handle ID clash
             quiz_id = create_quiz_id()
             quiz_access = self.db.create_quiz(quiz_id, host)
             if quiz_access:
@@ -38,14 +47,14 @@ class QuizMessageHandler(BaseMessageHandler):
 
         raise RuntimeError("Failed to create quiz")
 
-    async def join_quiz(self, quiz_id, client_id):
+    async def join_quiz(self, quiz_id, client_id, role):
         check_name(client_id)
 
         if (len(self.clients) >= Config.MAX_CLIENTS_PER_QUIZ
             # The host can always join
-            and client_id != self.quiz.host):
+            and role != ClientRole.Host):
             raise HandlerException(
-                f"Quiz {quiz_id} is at its capacity limit",
+                f"Player limit reached for Quiz {quiz_id}",
                 ErrorCode.PlayerLimitReached
             )
 
@@ -55,7 +64,7 @@ class QuizMessageHandler(BaseMessageHandler):
                 ErrorCode.InternalServerError
             )
 
-        updated_clients = self.quiz.add_client(self.connection, client_id)
+        updated_clients = self.quiz.add_client(self.connection, client_id, role)
         if updated_clients is None:
             raise HandlerException(
                 "Failed to join quiz. Please try again",
@@ -64,18 +73,18 @@ class QuizMessageHandler(BaseMessageHandler):
         self.clients = updated_clients
         self.client_id = client_id
 
-        await self.send_clients_event()
+        await self._send_status_message()
 
     async def leave_quiz(self):
         # Retry removal. It can fail if two (or more clients) disconnect at the same time. In that
         # case, CAS ensures that (at least) one update succeeded so removal should eventually
         # succeed. Note, in contrast to join_game, cannot make client responsible for retrying, as
         # it will typically have disconnected.
-        for attempts in range(1, 4):
+        for attempt in range(1, 1 + Config.MAX_ATTEMPTS):
             updated_clients = self.quiz.remove_client(self.connection)
             if updated_clients is not None:
                 break
-            await asyncio.sleep(random.random() * attempts)
+            await asyncio.sleep(random.random() * attempt)
 
         if updated_clients is None:
             return self.logger.error(f"Failed to remove {self.client_id} from Quiz {self.quiz.quiz_id}")
@@ -112,6 +121,13 @@ class QuizMessageHandler(BaseMessageHandler):
             )
 
         if cmd == "join-quiz":
-            return await self.join_quiz(quiz_id, cmd_message["client_id"])
+            client_id = cmd_message["client_id"]
+            if client_id == self.quiz.host:
+                role = ClientRole.Host
+            elif "observer" in cmd_message:
+                role = ClientRole.Observer
+            else:
+                role = ClientRole.Player
+            return await self.join_quiz(quiz_id, client_id, role)
 
         self.logger.warn("Unrecognized command %s", cmd)
