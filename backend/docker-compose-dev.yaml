@@ -1,0 +1,45 @@
+version: "3.7"
+
+services:
+  dynamodb:
+    image: amazon/dynamodb-local:latest
+    container_name: dynamodb
+    ports:
+      - 8000:8000
+    ## Disable hosting of DB on mounted volume, as this could cause database corruption.
+    ## For the current deployment, database persistence is not really needed anyway.
+    #command: "-jar DynamoDBLocal.jar -sharedDb -optimizeDbBeforeStartup -dbPath ./data"
+    #volumes:
+    #  - ./docker/dynamodb:/home/dynamodblocal/data
+    working_dir: /home/dynamodblocal
+
+  dynamodb-setup:
+    image: banst/awscli
+    depends_on:
+      - dynamodb
+    environment:
+      AWS_ACCESS_KEY_ID: 'DUMMYIDEXAMPLE'
+      AWS_SECRET_ACCESS_KEY: 'DUMMYEXAMPLEKEY'
+      REGION: 'eu-west-1'
+    volumes:
+      - ./scripts:/home/dynamodb-setup/scripts
+    working_dir: /home/dynamodb-setup
+    entrypoint: /bin/sh
+    command: ./scripts/init_tables.sh
+
+  quiz-service:
+    image: partyquiz-service
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ./src:/usr/backend/src
+    tty: true
+    ports:
+      - 8765:8765
+    depends_on:
+      - dynamodb
+    environment:
+      AWS_ACCESS_KEY_ID: 'DUMMYIDEXAMPLE'
+      AWS_SECRET_ACCESS_KEY: 'DUMMYEXAMPLEKEY'
+      AWS_DEFAULT_REGION: 'eu-west-1'

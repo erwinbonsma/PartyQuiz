@@ -1,0 +1,5 @@
+class Config:
+	MAIN_TABLE = "PartyQuiz-Rooms-dev"
+	MIN_NAME_LENGTH = 2
+	MAX_NAME_LENGTH = 20
+	MAX_CLIENTS_PER_QUIZ = 40
