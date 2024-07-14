@@ -8,8 +8,9 @@ logger = logging.getLogger('backend.handlers')
 class ErrorCode(IntEnum):
 	UnspecifiedError = 0
 	QuizNotFound = 1
-	InvalidClientName = 2
+	InvalidValue = 2
 	PlayerLimitReached = 3
+	NotAllowed = 4
 	InternalServerError = 255
 
 

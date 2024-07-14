@@ -1,10 +1,15 @@
+from typing import Optional
 import boto3
+import json
 import logging
-from Common import Client, ClientRole, Config
+from Common import Client, ClientRole, Config, Question
 
 logger = logging.getLogger('backend.dynamodb')
 
 DEFAULT_CLIENT = boto3.client('dynamodb')
+
+def optional_str(item, name):
+    return item[name]["S"] if name in item else None
 
 class DynamoDbStorage:
 
@@ -14,7 +19,7 @@ class DynamoDbStorage:
     def quiz_access(self, quiz_id):
         return DynamoDbQuiz(quiz_id, self.client)
 
-    def create_quiz(self, quiz_id, host, name):
+    def create_quiz(self, quiz_id, host_id, name):
         """
         Tries to create a room with the given ID. On success, returns the room access wrapper.
         Returns None if creation failed.
@@ -25,7 +30,7 @@ class DynamoDbStorage:
                 Item = {
                     "PKEY": { "S": f"Quiz#{quiz_id}" },
                     "SKEY": { "S": "Instance" },
-                    "Host": { "S": host },
+                    "Host": { "S": host_id },
                     "Name": { "S": name },
                 },
                 ConditionExpression = "attribute_not_exists(PKEY)"
@@ -127,25 +132,27 @@ class DynamoDbQuiz:
                 if skey.startswith("Conn#"):
                     self.__clients[skey[5:]] = Client(
                         id = item["ClientId"]["S"],
-                        role = ClientRole(int(item["Role"]["S"]))
+                        role = ClientRole(int(item["Role"]["S"])),
+                        name = optional_str(item, "ClientName"),
                     )
 
         return self.__clients
 
-    def add_client(self, connection, client_id, role):
+    def add_client(self, connection, client_id, role, name = None):
         try:
-            self.client.put_item(
-                TableName = Config.MAIN_TABLE,
-                Item = {
-                    "PKEY": { "S": f"Quiz#{self.quiz_id}" },
-                    "SKEY": { "S": f"Conn#{connection}" },
-                    "ClientId": { "S": client_id },
-                    "Role": { "S": str(role) }
-                }
-            )
+            item = {
+                "PKEY": { "S": f"Quiz#{self.quiz_id}" },
+                "SKEY": { "S": f"Conn#{connection}" },
+                "ClientId": { "S": client_id },
+                "Role": { "S": str(role) }
+            }
+            if name:
+                item["ClientName"] = { "S": name }
+
+            self.client.put_item(TableName=Config.MAIN_TABLE, Item=item)
 
             clients = self.clients()
-            clients[connection] = Client(client_id, role)
+            clients[connection] = Client(client_id, role, name)
 
             return clients
         except Exception as e:
@@ -167,3 +174,44 @@ class DynamoDbQuiz:
             return clients
         except Exception as e:
             logger.warn(f"Failed to remove Connection {connection} from Room {self.quiz_id}: {e}")
+
+    def get_client(self, connection) -> Optional[Client]:
+        return self.clients().get(connection)
+
+    def set_question(self, question: Question):
+        try:
+            self.client.put_item(
+                TableName = Config.MAIN_TABLE,
+                Item = {
+                    "PKEY": { "S": f"Questions#{self.quiz_id}" },
+                    "SKEY": { "S": f"ClientId#{question.author_id}" },
+                    "Question": { "S": question.question },
+                    "Choices": { "S": json.dumps(question.choices) },
+                    "Answer": { "N" : str(question.answer) }
+                }
+            )
+
+            return True
+        except Exception as e:
+            logger.warn(f"Failed to set question for Client {question.author_id} and Quiz {self.quiz_id}: {e}")
+
+    def questions(self) -> list[Question]:
+        try:
+            response = self.client.query(
+                TableName = Config.MAIN_TABLE,
+                KeyConditionExpression = "PKEY = :pkey",
+                ExpressionAttributeValues = { ":pkey": { "S": f"Questions#{self.quiz_id}" } }
+            )
+
+            return [
+                Question(
+                    author_id = skey[9:],
+                    question = item["Question"]["S"],
+                    choices = json.loads(item["Choices"]["S"]),
+                    answer = int(item["Answer"]["N"])
+                )
+                for item in response["Items"]
+                if (skey := item["SKEY"]["S"]).startswith("ClientId#")
+            ]
+        except Exception as e:
+            logger.warn(f"Failed to get questions for Quiz {self.quiz_id}: {e}")
