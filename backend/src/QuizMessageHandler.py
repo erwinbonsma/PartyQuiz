@@ -1,7 +1,6 @@
 import asyncio
-import jsonpickle
 import random
-from BaseMessageHandler import ErrorCode, BaseMessageHandler, HandlerException, ok_message
+from BaseMessageHandler import ErrorCode, BaseMessageHandler, HandlerException, ok_message, status_message
 from Common import Config, ClientRole
 
 def create_quiz_id():
@@ -32,13 +31,11 @@ class QuizMessageHandler(BaseMessageHandler):
                 await asyncio.wait(tasks)
 
     async def send_status_message(self):
-        msg = {}
-        msg["type"] = "status"
-        msg["host_present"] = any(client.id == self.quiz.host for client in self.clients.values())
-        msg["num_players"] = sum(1 for client in self.clients.values()
-                                 if client.role == ClientRole.Player)
-
-        await self.broadcast(jsonpickle.encode(msg, unpicklable=False), skip_players=True)
+        await self.broadcast(status_message({
+            "host_present": any(client.id == self.quiz.host for client in self.clients.values()),
+            "num_players": sum(1 for client in self.clients.values()
+                               if client.role == ClientRole.Player),
+        }), skip_players=True)
 
     async def create_quiz(self, host, name):
         check_name(host)

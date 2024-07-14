@@ -28,6 +28,12 @@ def ok_message(info = {}):
 		**info
 	})
 
+def status_message(info = {}):
+	return json.dumps({
+		"type": "status",
+		**info
+	})
+
 class HandlerException(Exception):
 	def __init__(self, message, error_code = ErrorCode.UnspecifiedError):
 		self.message = message
