@@ -31,7 +31,7 @@ class QuizMessageHandler(BaseMessageHandler):
                 self.logger.info("broadcasting %s to %d clients", message, len(tasks))
                 await asyncio.wait(tasks)
 
-    async def _send_status_message(self):
+    async def send_status_message(self):
         msg = {}
         msg["type"] = "status"
         msg["host_present"] = any(client.id == self.quiz.host for client in self.clients.values())
@@ -40,12 +40,12 @@ class QuizMessageHandler(BaseMessageHandler):
 
         await self.broadcast(jsonpickle.encode(msg, unpicklable=False), skip_players=True)
 
-    async def create_quiz(self, host):
+    async def create_quiz(self, host, name):
         check_name(host)
 
         for _ in range(Config.MAX_ATTEMPTS): # Multiple attempts to handle ID clash
             quiz_id = create_quiz_id()
-            quiz_access = self.db.create_quiz(quiz_id, host)
+            quiz_access = self.db.create_quiz(quiz_id, host, name)
             if quiz_access:
                 return await self.send_message(ok_message({ "quiz_id": quiz_id }))
 
@@ -77,7 +77,11 @@ class QuizMessageHandler(BaseMessageHandler):
         self.clients = updated_clients
         self.client_id = client_id
 
-        await self._send_status_message()
+        await self.send_message(ok_message({
+            "quiz_name": self.quiz.name
+        }))
+
+        await self.send_status_message()
 
     async def leave_quiz(self):
         # Retry removal. It can fail if two (or more clients) disconnect at the same time. In that
@@ -96,7 +100,7 @@ class QuizMessageHandler(BaseMessageHandler):
 
         self.db.clear_quiz_for_connection(self.connection)
 
-        await self._send_status_message()
+        await self.send_status_message()
 
     def fetch_quiz(self, quiz_id):
         self.quiz = self.db.quiz_access(quiz_id)
@@ -117,7 +121,10 @@ class QuizMessageHandler(BaseMessageHandler):
         cmd = cmd_message["action"]
 
         if cmd == "create-quiz":
-            return await self.create_quiz(cmd_message["client_id"])
+            return await self.create_quiz(
+                host=cmd_message["client_id"],
+                name=cmd_message["quiz_name"]
+            )
 
         quiz_id = cmd_message["quiz_id"]
         if not self.fetch_quiz(quiz_id):

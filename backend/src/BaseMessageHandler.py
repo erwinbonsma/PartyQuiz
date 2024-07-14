@@ -1,4 +1,3 @@
-import asyncio
 import json
 import logging
 import traceback
@@ -17,7 +16,7 @@ class ErrorCode(IntEnum):
 def error_message(details, error_code = ErrorCode.UnspecifiedError):
 	return json.dumps({
 		"type": "response",
-		"status": "error",
+		"result": "error",
 		"error_code": error_code,
 		"details": details
 	})
@@ -25,7 +24,7 @@ def error_message(details, error_code = ErrorCode.UnspecifiedError):
 def ok_message(info = {}):
 	return json.dumps({
 		"type": "response",
-		"status": "ok",
+		"result": "ok",
 		**info
 	})
 

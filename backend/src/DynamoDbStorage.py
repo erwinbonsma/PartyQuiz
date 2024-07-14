@@ -14,7 +14,7 @@ class DynamoDbStorage:
     def quiz_access(self, quiz_id):
         return DynamoDbQuiz(quiz_id, self.client)
 
-    def create_quiz(self, quiz_id, host):
+    def create_quiz(self, quiz_id, host, name):
         """
         Tries to create a room with the given ID. On success, returns the room access wrapper.
         Returns None if creation failed.
@@ -26,6 +26,7 @@ class DynamoDbStorage:
                     "PKEY": { "S": f"Quiz#{quiz_id}" },
                     "SKEY": { "S": "Instance" },
                     "Host": { "S": host },
+                    "Name": { "S": name },
                 },
                 ConditionExpression = "attribute_not_exists(PKEY)"
             )
@@ -91,6 +92,10 @@ class DynamoDbQuiz:
     @property
     def host(self):
         return self.__instance_item["Host"]["S"]
+
+    @property
+    def name(self):
+        return self.__instance_item["Name"]["S"]
 
     def exists(self):
         """
