@@ -1,7 +1,7 @@
 import asyncio
 import random
 from BaseMessageHandler import ErrorCode, BaseMessageHandler, HandlerException, ok_message, status_message
-from Common import Config, ClientRole, Question, create_id
+from Common import Config, ClientRole, Question, QuizState, create_id
 
 def check_int_value(name: str, value: int, value_range: tuple[int, int]):
     if value < value_range[0]:
@@ -49,13 +49,17 @@ class QuizMessageHandler(BaseMessageHandler):
         #         self.connection, len(self.clients)
         #     )
 
-    def check_role(self, required_role):
+    def check_role(self, required_role: ClientRole):
         client = self.quiz.get_client(self.connection)
         if client is None:
             raise HandlerException("Must join quiz first", ErrorCode.NotAllowed)
         if client.role != required_role:
             raise HandlerException("Invalid role", ErrorCode.NotAllowed)
         return client.id
+
+    def check_state(self, required_state: QuizState):
+        if self.quiz.state != required_state:
+            raise HandlerException("Invalid state", ErrorCode.NotAllowed)
 
     async def broadcast(self, message, skip_players = False):
         if self.clients:
@@ -109,6 +113,15 @@ class QuizMessageHandler(BaseMessageHandler):
                 f"Failed to add host to Quiz {quiz_id}",
                 ErrorCode.InternalServerError
             )
+
+        return await self.send_message(ok_message())
+
+    async def start_quiz(self):
+        self.check_role(ClientRole.Host)
+        self.check_state(QuizState.Setup)
+
+        if not self.quiz.set_state(QuizState.Play):
+            raise HandlerException("Failed to start quiz", ErrorCode.InternalServerError)
 
         return await self.send_message(ok_message())
 
@@ -175,6 +188,7 @@ class QuizMessageHandler(BaseMessageHandler):
 
     async def set_question(self, question, choices, answer):
         client_id = self.check_role(ClientRole.Player)
+        self.check_state(QuizState.Setup)
 
         check_string_value("question", question, Config.RANGE_QUESTION_LENGTH)
         check_int_value("number of choices", len(choices), Config.RANGE_CHOICES_PER_QUESTION)
@@ -206,6 +220,9 @@ class QuizMessageHandler(BaseMessageHandler):
 
         if cmd == "host-quiz":
             return await self.host_quiz(quiz_id, msg["host_id"])
+
+        if cmd == "start-quiz":
+            return await self.start_quiz()
 
         if cmd == "join-quiz":
             return await self.join_quiz(

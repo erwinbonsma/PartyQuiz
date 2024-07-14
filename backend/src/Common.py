@@ -17,6 +17,11 @@ class ClientRole(IntEnum):
     Player = 2
     Observer = 3
 
+class QuizState(IntEnum):
+    Setup = 1
+    Play = 2
+    Score = 3
+
 @dataclass
 class Client:
     id: str

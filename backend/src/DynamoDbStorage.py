@@ -2,7 +2,7 @@ from typing import Optional
 import boto3
 import json
 import logging
-from Common import Client, ClientRole, Config, Question
+from Common import Client, ClientRole, Config, Question, QuizState
 
 logger = logging.getLogger('backend.dynamodb')
 
@@ -32,6 +32,7 @@ class DynamoDbStorage:
                     "SKEY": { "S": "Instance" },
                     "Host": { "S": host_id },
                     "Name": { "S": name },
+                    "State": { "N": str(QuizState.Setup) },
                 },
                 ConditionExpression = "attribute_not_exists(PKEY)"
             )
@@ -95,12 +96,16 @@ class DynamoDbQuiz:
         self.__items = None
 
     @property
-    def host(self):
+    def host(self) -> str:
         return self.__instance_item["Host"]["S"]
 
     @property
-    def name(self):
+    def name(self) -> str:
         return self.__instance_item["Name"]["S"]
+
+    @property
+    def state(self) -> QuizState:
+        return QuizState(int(self.__instance_item["State"]["N"]))
 
     def exists(self):
         """
@@ -132,7 +137,7 @@ class DynamoDbQuiz:
                 if skey.startswith("Conn#"):
                     self.__clients[skey[5:]] = Client(
                         id = item["ClientId"]["S"],
-                        role = ClientRole(int(item["Role"]["S"])),
+                        role = ClientRole(int(item["Role"]["N"])),
                         name = optional_str(item, "ClientName"),
                     )
 
@@ -144,7 +149,7 @@ class DynamoDbQuiz:
                 "PKEY": { "S": f"Quiz#{self.quiz_id}" },
                 "SKEY": { "S": f"Conn#{connection}" },
                 "ClientId": { "S": client_id },
-                "Role": { "S": str(role) }
+                "Role": { "N": str(role) }
             }
             if name:
                 item["ClientName"] = { "S": name }
@@ -215,3 +220,20 @@ class DynamoDbQuiz:
             ]
         except Exception as e:
             logger.warn(f"Failed to get questions for Quiz {self.quiz_id}: {e}")
+
+    def set_state(self, state: QuizState):
+        try:
+            self.client.update_item(
+                TableName = Config.MAIN_TABLE,
+                Key = {
+                    "PKEY": { "S": f"Quiz#{self.quiz_id}" },
+                    "SKEY": { "S": "Instance" }
+                },
+                UpdateExpression = "SET #State = :state",
+                ExpressionAttributeNames = { "#State": "State" },
+                ExpressionAttributeValues = { ":state": { "N": str(state) } },
+            )
+
+            return True
+        except Exception as e:
+            logger.warn(f"Failed to get update state for Quiz {self.quiz_id}: {e}")
