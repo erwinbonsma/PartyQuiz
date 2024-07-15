@@ -2,18 +2,20 @@ from typing import Optional
 import boto3
 import json
 import logging
-from Common import Client, ClientRole, Config, Question, QuizState
+from Common import Client, ClientRole, Config, Question
 
 logger = logging.getLogger('backend.dynamodb')
 
 DEFAULT_CLIENT = boto3.client('dynamodb')
 
+
 def optional_str(item, name):
     return item[name]["S"] if name in item else None
 
+
 class DynamoDbStorage:
 
-    def __init__(self, client = DEFAULT_CLIENT):
+    def __init__(self, client=DEFAULT_CLIENT):
         self.client = client
 
     def quiz_access(self, quiz_id):
@@ -26,15 +28,16 @@ class DynamoDbStorage:
         """
         try:
             self.client.put_item(
-                TableName = Config.MAIN_TABLE,
-                Item = {
-                    "PKEY": { "S": f"Quiz#{quiz_id}" },
-                    "SKEY": { "S": "Instance" },
-                    "Host": { "S": host_id },
-                    "Name": { "S": name },
-                    "State": { "N": str(QuizState.Setup) },
+                TableName=Config.MAIN_TABLE,
+                Item={
+                    "PKEY": {"S": f"Quiz#{quiz_id}"},
+                    "SKEY": {"S": "Instance"},
+                    "Host": {"S": host_id},
+                    "Name": {"S": name},
+                    "QuestionIndex": {"N": "0"},
+                    "IsQuestionOpen": {"BOOL": False},
                 },
-                ConditionExpression = "attribute_not_exists(PKEY)"
+                ConditionExpression="attribute_not_exists(PKEY)"
             )
             return DynamoDbQuiz(quiz_id, self.client)
         except Exception as e:
@@ -43,13 +46,13 @@ class DynamoDbStorage:
     def set_quiz_for_connection(self, connection, quiz_id):
         try:
             response = self.client.put_item(
-                TableName = Config.MAIN_TABLE,
-                Item = {
-                    "PKEY": { "S": f"Conn#{connection}" },
-                    "SKEY": { "S": "Instance" },
-                    "QuizId": { "S": quiz_id }
+                TableName=Config.MAIN_TABLE,
+                Item={
+                    "PKEY": {"S": f"Conn#{connection}"},
+                    "SKEY": {"S": "Instance"},
+                    "QuizId": {"S": quiz_id}
                 },
-                ReturnValues = "ALL_OLD"
+                ReturnValues="ALL_OLD"
             )
 
             if "Attributes" in response:
@@ -62,10 +65,10 @@ class DynamoDbStorage:
     def quiz_for_connection(self, connection):
         try:
             response = self.client.get_item(
-                TableName = Config.MAIN_TABLE,
-                Key = {
-                    "PKEY": { "S": f"Conn#{connection}" },
-                    "SKEY": { "S": "Instance" }
+                TableName=Config.MAIN_TABLE,
+                Key={
+                    "PKEY": {"S": f"Conn#{connection}"},
+                    "SKEY": {"S": "Instance"}
                 }
             )
 
@@ -77,14 +80,15 @@ class DynamoDbStorage:
     def clear_quiz_for_connection(self, connection):
         try:
             response = self.client.delete_item(
-                TableName = Config.MAIN_TABLE,
-                Key = {
-                    "PKEY": { "S": f"Conn#{connection}" },
-                    "SKEY": { "S": "Instance" }
+                TableName=Config.MAIN_TABLE,
+                Key={
+                    "PKEY": {"S": f"Conn#{connection}"},
+                    "SKEY": {"S": "Instance"}
                 },
             )
         except Exception as e:
             logger.warn(f"Failed to clear quiz for connection {connection}: {e}")
+
 
 class DynamoDbQuiz:
 
@@ -104,8 +108,12 @@ class DynamoDbQuiz:
         return self.__instance_item["Name"]["S"]
 
     @property
-    def state(self) -> QuizState:
-        return QuizState(int(self.__instance_item["State"]["N"]))
+    def question_index(self) -> int:
+        return int(self.__instance_item["QuestionIndex"]["N"])
+
+    @property
+    def is_question_open(self) -> bool:
+        return self.__instance_item["IsQuestionOpen"]["BOOL"]
 
     def exists(self):
         """
@@ -114,16 +122,17 @@ class DynamoDbQuiz:
         """
         try:
             response = self.client.query(
-                TableName = Config.MAIN_TABLE,
-                KeyConditionExpression = "PKEY = :pkey",
-                ExpressionAttributeValues = {
-                    ":pkey": { "S": f"Quiz#{self.quiz_id}" }
+                TableName=Config.MAIN_TABLE,
+                KeyConditionExpression="PKEY = :pkey",
+                ExpressionAttributeValues={
+                    ":pkey": {"S": f"Quiz#{self.quiz_id}"}
                 }
             )
 
             self.__items = response["Items"]
             logger.info("Data for quiz %s: %s", self.quiz_id, self.__items)
-            self.__instance_item = next(item for item in self.__items if item["SKEY"]["S"] == "Instance")
+            self.__instance_item = next(item for item in self.__items
+                                        if item["SKEY"]["S"] == "Instance")
 
             return self.__instance_item is not None
         except Exception as e:
@@ -136,23 +145,23 @@ class DynamoDbQuiz:
                 skey = item["SKEY"]["S"]
                 if skey.startswith("Conn#"):
                     self.__clients[skey[5:]] = Client(
-                        id = item["ClientId"]["S"],
-                        role = ClientRole(int(item["Role"]["N"])),
-                        name = optional_str(item, "ClientName"),
+                        id=item["ClientId"]["S"],
+                        role=ClientRole(int(item["Role"]["N"])),
+                        name=optional_str(item, "ClientName"),
                     )
 
         return self.__clients
 
-    def add_client(self, connection, client_id, role, name = None):
+    def add_client(self, connection, client_id, role, name=None):
         try:
             item = {
-                "PKEY": { "S": f"Quiz#{self.quiz_id}" },
-                "SKEY": { "S": f"Conn#{connection}" },
-                "ClientId": { "S": client_id },
-                "Role": { "N": str(role) }
+                "PKEY": {"S": f"Quiz#{self.quiz_id}"},
+                "SKEY": {"S": f"Conn#{connection}"},
+                "ClientId": {"S": client_id},
+                "Role": {"N": str(role)}
             }
             if name:
-                item["ClientName"] = { "S": name }
+                item["ClientName"] = {"S": name}
 
             self.client.put_item(TableName=Config.MAIN_TABLE, Item=item)
 
@@ -166,14 +175,14 @@ class DynamoDbQuiz:
     def remove_client(self, connection):
         try:
             response = self.client.delete_item(
-                TableName = Config.MAIN_TABLE,
-                Key = {
-                    "PKEY": { "S": f"Quiz#{self.quiz_id}" },
-                    "SKEY": { "S": f"Conn#{connection}" }
+                TableName=Config.MAIN_TABLE,
+                Key={
+                    "PKEY": {"S": f"Quiz#{self.quiz_id}"},
+                    "SKEY": {"S": f"Conn#{connection}"}
                 }
             )
 
-            clients = self.clients() # Ensure it is fetched
+            clients = self.clients()  # Ensure it is fetched
             del clients[connection]
 
             return clients
@@ -186,34 +195,35 @@ class DynamoDbQuiz:
     def set_pool_question(self, question: Question):
         try:
             self.client.put_item(
-                TableName = Config.MAIN_TABLE,
-                Item = {
-                    "PKEY": { "S": f"Pool#{self.quiz_id}" },
-                    "SKEY": { "S": f"ClientId#{question.author_id}" },
-                    "Question": { "S": question.question },
-                    "Choices": { "S": json.dumps(question.choices) },
-                    "Answer": { "N" : str(question.answer) }
+                TableName=Config.MAIN_TABLE,
+                Item={
+                    "PKEY": {"S": f"Pool#{self.quiz_id}"},
+                    "SKEY": {"S": f"ClientId#{question.author_id}"},
+                    "Question": {"S": question.question},
+                    "Choices": {"S": json.dumps(question.choices)},
+                    "Answer": {"N": str(question.answer)}
                 }
             )
 
             return True
         except Exception as e:
-            logger.warn(f"Failed to set question for Client {question.author_id} and Quiz {self.quiz_id}: {e}")
+            logger.warn(
+                f"Failed to set question for Client {question.author_id} and Quiz {self.quiz_id}: {e}")
 
     def questions_pool(self) -> list[Question]:
         try:
             response = self.client.query(
-                TableName = Config.MAIN_TABLE,
-                KeyConditionExpression = "PKEY = :pkey",
-                ExpressionAttributeValues = { ":pkey": { "S": f"Pool#{self.quiz_id}" } }
+                TableName=Config.MAIN_TABLE,
+                KeyConditionExpression="PKEY = :pkey",
+                ExpressionAttributeValues={":pkey": {"S": f"Pool#{self.quiz_id}"}}
             )
 
             return [
                 Question(
-                    author_id = skey[9:],
-                    question = item["Question"]["S"],
-                    choices = json.loads(item["Choices"]["S"]),
-                    answer = int(item["Answer"]["N"])
+                    author_id=skey[9:],
+                    question=item["Question"]["S"],
+                    choices=json.loads(item["Choices"]["S"]),
+                    answer=int(item["Answer"]["N"])
                 )
                 for item in response["Items"]
                 if (skey := item["SKEY"]["S"]).startswith("ClientId#")
@@ -221,17 +231,70 @@ class DynamoDbQuiz:
         except Exception as e:
             logger.warn(f"Failed to get questions for Quiz {self.quiz_id}: {e}")
 
-    def set_state(self, state: QuizState):
+    def set_question(self, question: Question, question_index: int):
+        try:
+            # Note: Allow overwriting an existing question. This should only occur when a previous
+            # invocation of open_question crashed midway and left the database in an inconsistent
+            # state. It is needed to recover from this state.
+            self.client.put_item(
+                TableName=Config.MAIN_TABLE,
+                Item={
+                    "PKEY": {"S": f"Question#{self.quiz_id}"},
+                    "SKEY": {"S": f"Index#{question_index}"},
+                    "Question": {"S": question.question},
+                    "Choices": {"SS": question.choices},
+                    "Answer": {"N": str(question.answer)}
+                },
+            )
+
+            return True
+        except Exception as e:
+            logger.warn(
+                f"Failed to set question {question_index} for Quiz {self.quiz_id}: {e}")
+
+    def open_question(self, question: Question) -> int:
+        try:
+            old_index = self.question_index
+            new_index = old_index + 1
+
+            # First store the new question
+            if not self.set_question(question, new_index):
+                return
+
+            # Next update the active question index
+            response = self.client.update_item(
+                TableName=Config.MAIN_TABLE,
+                Key={
+                    "PKEY": {"S": f"Quiz#{self.quiz_id}"},
+                    "SKEY": {"S": "Instance"}
+                },
+                UpdateExpression="SET QuestionIndex = :new_index, IsQuestionOpen = :closed",
+                ExpressionAttributeValues={
+                    ":old_index": {"N": str(old_index)},
+                    ":new_index": {"N": str(new_index)},
+                    ":closed": {"BOOL": False}
+                },
+                ConditionExpression="QuestionIndex = :old_index",
+                ReturnValues="UPDATED_NEW"
+            )
+
+            for key, value in response["Attributes"].items():
+                self.__instance_item[key] = value
+
+            return self.question_index
+        except Exception as e:
+            logger.warn(f"Failed to open new question: {e}")
+
+    def close_question(self):
         try:
             self.client.update_item(
-                TableName = Config.MAIN_TABLE,
-                Key = {
-                    "PKEY": { "S": f"Quiz#{self.quiz_id}" },
-                    "SKEY": { "S": "Instance" }
+                TableName=Config.MAIN_TABLE,
+                Key={
+                    "PKEY": {"S": f"Quiz#{self.quiz_id}"},
+                    "SKEY": {"S": "Instance"}
                 },
-                UpdateExpression = "SET #State = :state",
-                ExpressionAttributeNames = { "#State": "State" },
-                ExpressionAttributeValues = { ":state": { "N": str(state) } },
+                UpdateExpression="SET IsQuestionOpen = :value",
+                ExpressionAttributeValues={":value": {"BOOL": False}},
             )
 
             return True

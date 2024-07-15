@@ -5,6 +5,7 @@ from enum import IntEnum
 
 logger = logging.getLogger('backend.handlers')
 
+
 class ErrorCode(IntEnum):
     UnspecifiedError = 0
     QuizNotFound = 1
@@ -15,7 +16,7 @@ class ErrorCode(IntEnum):
     InternalServerError = 255
 
 
-def error_message(error_code = ErrorCode.UnspecifiedError, details = None):
+def error_message(error_code=ErrorCode.UnspecifiedError, details=None):
     msg = {
         "type": "response",
         "result": "error",
@@ -25,23 +26,27 @@ def error_message(error_code = ErrorCode.UnspecifiedError, details = None):
         msg["details"] = details
     return json.dumps(msg)
 
-def ok_message(info = {}):
+
+def ok_message(info={}):
     return json.dumps({
         "type": "response",
         "result": "ok",
         **info
     })
 
-def status_message(info = {}):
+
+def status_message(info={}):
     return json.dumps({
         "type": "status",
         **info
     })
 
+
 class HandlerException(Exception):
-    def __init__(self, message, error_code = ErrorCode.UnspecifiedError):
+    def __init__(self, message, error_code=ErrorCode.UnspecifiedError):
         self.message = message
         self.error_code = error_code
+
 
 class BaseHandler:
     def __init__(self, db, comms, connection):
@@ -50,8 +55,9 @@ class BaseHandler:
         self.connection = connection
         self.logger = logger
 
+
 class BaseMessageHandler(BaseHandler):
-    async def send_message(self, message, dest_client = None):
+    async def send_message(self, message, dest_client=None):
         if dest_client:
             connection = [conn for conn, name in self.clients.items() if name == dest_client]
             if len(connection) == 0:
@@ -72,7 +78,7 @@ class BaseMessageHandler(BaseHandler):
             self.logger.info("Handled message")
         except HandlerException as e:
             self.logger.warn(e.message)
-            return await self.send_message(error_message(error_code=e.error_code, details=e.message)
+            return await self.send_message(error_message(error_code=e.error_code, details=e.message))
         except Exception as e:
             self.logger.warn(e)
             traceback.print_exc()

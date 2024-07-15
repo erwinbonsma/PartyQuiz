@@ -1,8 +1,9 @@
 import asyncio
+import json
 import random
 from BaseMessageHandler import (BaseMessageHandler, ErrorCode, HandlerException,
                                 error_message, ok_message, status_message)
-from Common import Config, ClientRole, Question, QuizState, create_id
+from Common import Config, ClientRole, Question, create_id
 
 
 def check_int_value(name: str, value: int, value_range: tuple[int, int]):
@@ -37,6 +38,17 @@ def check_string_value(name: str, value: str, len_range: tuple[int, int]):
         )
 
 
+def create_question(author_id, question, choices, answer):
+    check_string_value("question", question, Config.RANGE_QUESTION_LENGTH)
+    check_int_value("number of choices", len(choices),
+                    Config.RANGE_CHOICES_PER_QUESTION)
+    for i, choice in enumerate(choices):
+        check_string_value(f"answer {i + 1}", choice, Config.RANGE_CHOICE_LENGTH)
+    check_int_value("answer", answer, (1, len(choices)))
+
+    return Question(author_id, question, choices, answer)
+
+
 class QuizMessageHandler(BaseMessageHandler):
 
     def fetch_quiz(self, quiz_id):
@@ -63,10 +75,6 @@ class QuizMessageHandler(BaseMessageHandler):
             raise HandlerException("Invalid role", ErrorCode.NotAllowed)
         return client.id
 
-    def check_state(self, required_state: QuizState):
-        if self.quiz.state != required_state:
-            raise HandlerException("Invalid state", ErrorCode.NotAllowed)
-
     async def broadcast(self, message, skip_players=False):
         if self.clients:
             tasks = [asyncio.create_task(self.comms.send(ws, message))
@@ -82,7 +90,9 @@ class QuizMessageHandler(BaseMessageHandler):
             "host_present": any(client.id == self.quiz.host for client in self.clients.values()),
             "num_players": sum(1 for client in self.clients.values()
                                if client.role == ClientRole.Player),
-            "question_pool_size": len(self.quiz.questions_pool())
+            "question_pool_size": len(self.quiz.questions_pool()),
+            "is_question_open": self.quiz.is_question_open,
+            "question_index": self.quiz.question_index,
         }), skip_players=True)
 
     async def create_quiz(self, name):
@@ -120,16 +130,6 @@ class QuizMessageHandler(BaseMessageHandler):
                 f"Failed to add host to Quiz {quiz_id}",
                 ErrorCode.InternalServerError
             )
-
-        return await self.send_message(ok_message())
-
-    async def start_quiz(self):
-        self.check_role(ClientRole.Host)
-        self.check_state(QuizState.Setup)
-
-        if not self.quiz.set_state(QuizState.Play):
-            raise HandlerException(
-                "Failed to start quiz", ErrorCode.InternalServerError)
 
         return await self.send_message(ok_message())
 
@@ -208,15 +208,7 @@ class QuizMessageHandler(BaseMessageHandler):
         """
         client_id = self.check_role(ClientRole.Player)
 
-        check_string_value("question", question, Config.RANGE_QUESTION_LENGTH)
-        check_int_value("number of choices", len(choices),
-                        Config.RANGE_CHOICES_PER_QUESTION)
-        for i, choice in enumerate(choices):
-            check_string_value(f"answer {i + 1}",
-                               choice, Config.RANGE_CHOICE_LENGTH)
-        check_int_value("answer", answer, (1, len(choices)))
-
-        if not self.quiz.set_pool_question(Question(client_id, question, choices, answer)):
+        if not self.quiz.set_pool_question(create_question(client_id, question, choices, answer)):
             raise HandlerException(
                 "Failed to set question", ErrorCode.InternalServerError)
 
@@ -228,6 +220,38 @@ class QuizMessageHandler(BaseMessageHandler):
 
         return await self.send_message(ok_message({
             "pool_questions": [q.asdict() for q in self.quiz.questions_pool()]
+        }))
+
+    async def open_question(self, author_id, question, choices, answer):
+        """
+        Sets a new (active) questions and accepts answers for it.
+        """
+        self.check_role(ClientRole.Host)
+
+        question = create_question(author_id, question, choices, answer)
+        if not (question_id := self.quiz.open_question(question)):
+            raise HandlerException(
+                "Failed to open question", ErrorCode.InternalServerError)
+
+        await self.broadcast(json.dumps({
+            "type": "question-opened",
+            "question": question.asdict(strip_answer=True),
+            "question_id": question_id
+        }))
+
+    async def close_question(self):
+        """
+        Marks the active question closed so that no answers are accepted anymore.
+        """
+        self.check_role(ClientRole.Host)
+
+        if not (question_id := self.quiz.close_question()):
+            raise HandlerException(
+                "Failed to open question", ErrorCode.InternalServerError)
+
+        await self.broadcast(json.dumps({
+            "type": "question-closed",
+            "question_id": question_id
         }))
 
     async def _handle_message(self, msg):
@@ -253,8 +277,11 @@ class QuizMessageHandler(BaseMessageHandler):
         if cmd == "get-pool-questions":
             return await self.get_pool_questions()
 
-        if cmd == "start-quiz":
-            return await self.start_quiz()
+        if cmd == "open-question":
+            return await self.open_question(msg["author"], msg["question"], msg["choices"],
+                                            msg["answer"])
+        if cmd == "close-question":
+            return await self.close_question()
 
         self.logger.warn("Unrecognized command %s", cmd)
         return await self.send_message(error_message(ErrorCode.UnknownCommand))

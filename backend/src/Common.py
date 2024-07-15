@@ -3,6 +3,7 @@ from enum import IntEnum
 import random
 from typing import Optional
 
+
 class Config:
     MAIN_TABLE = "PartyQuiz-dev"
     MAX_CLIENTS_PER_QUIZ = 40
@@ -12,21 +13,19 @@ class Config:
     RANGE_QUESTION_LENGTH = (10, 200)
     RANGE_CHOICE_LENGTH = (1, 20)
 
+
 class ClientRole(IntEnum):
     Host = 1
     Player = 2
     Observer = 3
 
-class QuizState(IntEnum):
-    Setup = 1
-    Play = 2
-    Score = 3
 
 @dataclass
 class Client:
     id: str
     role: ClientRole
     name: Optional[str]
+
 
 @dataclass
 class Question:
@@ -35,8 +34,12 @@ class Question:
     choices: list[str]
     answer: int
 
-    def asdict(self):
-        return asdict(self)
+    def asdict(self, strip_answer=True):
+        d = asdict(self)
+        if strip_answer:
+            del d["answer"]
+        return d
+
 
 def create_id():
     return ''.join(chr(random.randint(ord('A'), ord('Z'))) for _ in range(6))
