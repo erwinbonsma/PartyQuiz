@@ -183,12 +183,12 @@ class DynamoDbQuiz:
     def get_client(self, connection) -> Optional[Client]:
         return self.clients().get(connection)
 
-    def set_question(self, question: Question):
+    def set_pool_question(self, question: Question):
         try:
             self.client.put_item(
                 TableName = Config.MAIN_TABLE,
                 Item = {
-                    "PKEY": { "S": f"Questions#{self.quiz_id}" },
+                    "PKEY": { "S": f"Pool#{self.quiz_id}" },
                     "SKEY": { "S": f"ClientId#{question.author_id}" },
                     "Question": { "S": question.question },
                     "Choices": { "S": json.dumps(question.choices) },
@@ -200,12 +200,12 @@ class DynamoDbQuiz:
         except Exception as e:
             logger.warn(f"Failed to set question for Client {question.author_id} and Quiz {self.quiz_id}: {e}")
 
-    def questions(self) -> list[Question]:
+    def questions_pool(self) -> list[Question]:
         try:
             response = self.client.query(
                 TableName = Config.MAIN_TABLE,
                 KeyConditionExpression = "PKEY = :pkey",
-                ExpressionAttributeValues = { ":pkey": { "S": f"Questions#{self.quiz_id}" } }
+                ExpressionAttributeValues = { ":pkey": { "S": f"Pool#{self.quiz_id}" } }
             )
 
             return [

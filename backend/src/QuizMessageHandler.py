@@ -1,7 +1,9 @@
 import asyncio
 import random
-from BaseMessageHandler import ErrorCode, BaseMessageHandler, HandlerException, ok_message, status_message
+from BaseMessageHandler import (BaseMessageHandler, ErrorCode, HandlerException,
+                                error_message, ok_message, status_message)
 from Common import Config, ClientRole, Question, QuizState, create_id
+
 
 def check_int_value(name: str, value: int, value_range: tuple[int, int]):
     if value < value_range[0]:
@@ -14,6 +16,7 @@ def check_int_value(name: str, value: int, value_range: tuple[int, int]):
             f"{name} is too long ({value} > {value_range[1]})",
             ErrorCode.InvalidValue
         )
+
 
 def check_string_value(name: str, value: str, len_range: tuple[int, int]):
     if value != value.strip():
@@ -33,13 +36,15 @@ def check_string_value(name: str, value: str, len_range: tuple[int, int]):
             ErrorCode.InvalidValue
         )
 
+
 class QuizMessageHandler(BaseMessageHandler):
 
     def fetch_quiz(self, quiz_id):
         self.quiz = self.db.quiz_access(quiz_id)
 
         if not self.quiz.exists():
-            raise HandlerException(f"Quiz {quiz_id} not found", ErrorCode.QuizNotFound)
+            raise HandlerException(
+                f"Quiz {quiz_id} not found", ErrorCode.QuizNotFound)
 
         self.clients = self.quiz.clients()
         # self.client_id = self.clients.get(self.connection, None)
@@ -52,7 +57,8 @@ class QuizMessageHandler(BaseMessageHandler):
     def check_role(self, required_role: ClientRole):
         client = self.quiz.get_client(self.connection)
         if client is None:
-            raise HandlerException("Must join quiz first", ErrorCode.NotAllowed)
+            raise HandlerException(
+                "Must join quiz first", ErrorCode.NotAllowed)
         if client.role != required_role:
             raise HandlerException("Invalid role", ErrorCode.NotAllowed)
         return client.id
@@ -61,13 +67,14 @@ class QuizMessageHandler(BaseMessageHandler):
         if self.quiz.state != required_state:
             raise HandlerException("Invalid state", ErrorCode.NotAllowed)
 
-    async def broadcast(self, message, skip_players = False):
+    async def broadcast(self, message, skip_players=False):
         if self.clients:
             tasks = [asyncio.create_task(self.comms.send(ws, message))
                      for ws, client in self.clients.items()
                      if not skip_players or client.role != ClientRole.Player]
             if tasks:
-                self.logger.info("broadcasting %s to %d clients", message, len(tasks))
+                self.logger.info(
+                    "broadcasting %s to %d clients", message, len(tasks))
                 await asyncio.wait(tasks)
 
     async def send_status_message(self):
@@ -75,13 +82,13 @@ class QuizMessageHandler(BaseMessageHandler):
             "host_present": any(client.id == self.quiz.host for client in self.clients.values()),
             "num_players": sum(1 for client in self.clients.values()
                                if client.role == ClientRole.Player),
-            "num_questions": len(self.quiz.questions())
+            "question_pool_size": len(self.quiz.questions_pool())
         }), skip_players=True)
 
     async def create_quiz(self, name):
         host_id = create_id()
 
-        for _ in range(Config.MAX_ATTEMPTS): # Multiple attempts to handle ID clash
+        for _ in range(Config.MAX_ATTEMPTS):  # Multiple attempts to handle ID clash
             quiz_id = create_id()
             if self.db.create_quiz(quiz_id, host_id, name):
                 break
@@ -121,11 +128,12 @@ class QuizMessageHandler(BaseMessageHandler):
         self.check_state(QuizState.Setup)
 
         if not self.quiz.set_state(QuizState.Play):
-            raise HandlerException("Failed to start quiz", ErrorCode.InternalServerError)
+            raise HandlerException(
+                "Failed to start quiz", ErrorCode.InternalServerError)
 
         return await self.send_message(ok_message())
 
-    async def join_quiz(self, quiz_id, player_name, client_id = None):
+    async def join_quiz(self, quiz_id, player_name, client_id=None):
         """
         Join (or re-join) a quiz (as a player)
         """
@@ -162,7 +170,7 @@ class QuizMessageHandler(BaseMessageHandler):
 
         await self.send_message(ok_message({
             "quiz_name": self.quiz.name,
-            "client_id": client_id # Return to enable client to rejoin
+            "client_id": client_id  # Return to enable client to rejoin
         }))
 
         await self.send_status_message()
@@ -179,34 +187,47 @@ class QuizMessageHandler(BaseMessageHandler):
             await asyncio.sleep(random.random() * attempt)
 
         if updated_clients is None:
-            return self.logger.error(f"Failed to remove {self.client_id} from Quiz {self.quiz.quiz_id}")
+            return self.logger.error(
+                f"Failed to remove {self.client_id} from Quiz {self.quiz.quiz_id}")
         self.clients = updated_clients
 
         self.db.clear_quiz_for_connection(self.connection)
 
         await self.send_status_message()
 
-    async def set_question(self, question, choices, answer):
+    async def set_pool_question(self, question, choices, answer):
+        """
+        Adds a question to the question pool, or replaces/updates an existing one.
+
+        Each player can have only one question in the pool. The host can use this a source of
+        questions when running the quiz.
+
+        The backend intentionally does not limit how the pool is used. The host controls the order
+        in which to ask the questions, may filter out duplicates, and may ask questions from
+        another source. Players may modify questions while the quiz is ongoing.
+        """
         client_id = self.check_role(ClientRole.Player)
-        self.check_state(QuizState.Setup)
 
         check_string_value("question", question, Config.RANGE_QUESTION_LENGTH)
-        check_int_value("number of choices", len(choices), Config.RANGE_CHOICES_PER_QUESTION)
+        check_int_value("number of choices", len(choices),
+                        Config.RANGE_CHOICES_PER_QUESTION)
         for i, choice in enumerate(choices):
-            check_string_value(f"answer {i + 1}", choice, Config.RANGE_CHOICE_LENGTH)
+            check_string_value(f"answer {i + 1}",
+                               choice, Config.RANGE_CHOICE_LENGTH)
         check_int_value("answer", answer, (1, len(choices)))
 
-        if not self.quiz.set_question(Question(client_id, question, choices, answer)):
-            raise HandlerException("Failed to set question", ErrorCode.InternalServerError)
+        if not self.quiz.set_pool_question(Question(client_id, question, choices, answer)):
+            raise HandlerException(
+                "Failed to set question", ErrorCode.InternalServerError)
 
         await self.send_message(ok_message())
         await self.send_status_message()
 
-    async def get_questions(self):
+    async def get_pool_questions(self):
         self.check_role(ClientRole.Host)
 
         return await self.send_message(ok_message({
-            "questions": [q.asdict() for q in self.quiz.questions()]
+            "pool_questions": [q.asdict() for q in self.quiz.questions_pool()]
         }))
 
     async def _handle_message(self, msg):
@@ -220,10 +241,6 @@ class QuizMessageHandler(BaseMessageHandler):
 
         if cmd == "host-quiz":
             return await self.host_quiz(quiz_id, msg["host_id"])
-
-        if cmd == "start-quiz":
-            return await self.start_quiz()
-
         if cmd == "join-quiz":
             return await self.join_quiz(
                 quiz_id,
@@ -231,10 +248,13 @@ class QuizMessageHandler(BaseMessageHandler):
                 client_id=msg.get("client_id")
             )
 
-        if cmd == "set-question":
-            return await self.set_question(msg["question"], msg["choices"], msg["answer"])
+        if cmd == "set-pool-question":
+            return await self.set_pool_question(msg["question"], msg["choices"], msg["answer"])
+        if cmd == "get-pool-questions":
+            return await self.get_pool_questions()
 
-        if cmd == "get-questions":
-            return await self.get_questions()
+        if cmd == "start-quiz":
+            return await self.start_quiz()
 
         self.logger.warn("Unrecognized command %s", cmd)
+        return await self.send_message(error_message(ErrorCode.UnknownCommand))
