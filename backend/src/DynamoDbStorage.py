@@ -200,7 +200,7 @@ class DynamoDbQuiz:
                     "PKEY": {"S": f"Pool#{self.quiz_id}"},
                     "SKEY": {"S": f"ClientId#{question.author_id}"},
                     "Question": {"S": question.question},
-                    "Choices": {"S": json.dumps(question.choices)},
+                    "Choices": {"SS": question.choices},
                     "Answer": {"N": str(question.answer)}
                 }
             )
@@ -222,7 +222,7 @@ class DynamoDbQuiz:
                 Question(
                     author_id=skey[9:],
                     question=item["Question"]["S"],
-                    choices=json.loads(item["Choices"]["S"]),
+                    choices=item["Choices"]["SS"],
                     answer=int(item["Answer"]["N"])
                 )
                 for item in response["Items"]
