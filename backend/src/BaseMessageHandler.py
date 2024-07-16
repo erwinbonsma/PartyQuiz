@@ -13,6 +13,7 @@ class ErrorCode(IntEnum):
     PlayerLimitReached = 3
     NotAllowed = 4
     UnknownCommand = 5
+    MissingField = 6
     InternalServerError = 255
 
 

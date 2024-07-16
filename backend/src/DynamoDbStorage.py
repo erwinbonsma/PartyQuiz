@@ -34,8 +34,9 @@ class DynamoDbStorage:
                     "SKEY": {"S": "Instance"},
                     "Host": {"S": host_id},
                     "Name": {"S": name},
-                    "QuestionIndex": {"N": "0"},
+                    "QuestionId": {"N": str(0)},
                     "IsQuestionOpen": {"BOOL": False},
+                    "NumChoices": {"N": str(0)},
                 },
                 ConditionExpression="attribute_not_exists(PKEY)"
             )
@@ -108,12 +109,19 @@ class DynamoDbQuiz:
         return self.__instance_item["Name"]["S"]
 
     @property
-    def question_index(self) -> int:
-        return int(self.__instance_item["QuestionIndex"]["N"])
+    def question_id(self) -> int:
+        return int(self.__instance_item["QuestionId"]["N"])
 
     @property
     def is_question_open(self) -> bool:
         return self.__instance_item["IsQuestionOpen"]["BOOL"]
+
+    @property
+    def num_choices(self) -> int:
+        """
+        Number of choices for current question
+        """
+        return int(self.__instance_item["NumChoices"]["N"])
 
     def exists(self):
         """
@@ -231,7 +239,7 @@ class DynamoDbQuiz:
         except Exception as e:
             logger.warn(f"Failed to get questions for Quiz {self.quiz_id}: {e}")
 
-    def set_question(self, question: Question, question_index: int):
+    def set_question(self, question: Question, question_id: int):
         try:
             # Note: Allow overwriting an existing question. This should only occur when a previous
             # invocation of open_question crashed midway and left the database in an inconsistent
@@ -239,8 +247,8 @@ class DynamoDbQuiz:
             self.client.put_item(
                 TableName=Config.MAIN_TABLE,
                 Item={
-                    "PKEY": {"S": f"Question#{self.quiz_id}"},
-                    "SKEY": {"S": f"Index#{question_index}"},
+                    "PKEY": {"S": f"Questions#{self.quiz_id}"},
+                    "SKEY": {"S": str(question_id)},
                     "Question": {"S": question.question},
                     "Choices": {"SS": question.choices},
                     "Answer": {"N": str(question.answer)}
@@ -250,15 +258,15 @@ class DynamoDbQuiz:
             return True
         except Exception as e:
             logger.warn(
-                f"Failed to set question {question_index} for Quiz {self.quiz_id}: {e}")
+                f"Failed to set question {question_id} for Quiz {self.quiz_id}: {e}")
 
     def open_question(self, question: Question) -> int:
         try:
-            old_index = self.question_index
-            new_index = old_index + 1
+            old_id = self.question_id
+            new_id = old_id + 1
 
             # First store the new question
-            if not self.set_question(question, new_index):
+            if not self.set_question(question, new_id):
                 return
 
             # Next update the active question index
@@ -268,22 +276,40 @@ class DynamoDbQuiz:
                     "PKEY": {"S": f"Quiz#{self.quiz_id}"},
                     "SKEY": {"S": "Instance"}
                 },
-                UpdateExpression="SET QuestionIndex = :new_index, IsQuestionOpen = :closed",
+                UpdateExpression="SET QuestionId = :new_id, IsQuestionOpen = :open, NumChoices = :nc",
                 ExpressionAttributeValues={
-                    ":old_index": {"N": str(old_index)},
-                    ":new_index": {"N": str(new_index)},
-                    ":closed": {"BOOL": False}
+                    ":old_id": {"N": str(old_id)},
+                    ":new_id": {"N": str(new_id)},
+                    ":nc": {"N": str(len(question.choices))},
+                    ":open": {"BOOL": True}
                 },
-                ConditionExpression="QuestionIndex = :old_index",
+                ConditionExpression="QuestionId = :old_id",
                 ReturnValues="UPDATED_NEW"
             )
 
             for key, value in response["Attributes"].items():
                 self.__instance_item[key] = value
 
-            return self.question_index
+            return self.question_id
         except Exception as e:
             logger.warn(f"Failed to open new question: {e}")
+
+    def store_answer(self, question_id, client_id, answer: int):
+        try:
+            self.client.put_item(
+                TableName=Config.MAIN_TABLE,
+                Item={
+                    "PKEY": {"S": f"Answers#{self.quiz_id}"},
+                    "SKEY": {"S": f"{question_id}#{client_id}"},
+                    "Answer": {"N": str(answer)}
+                },
+                ConditionExpression="attribute_not_exists(PKEY)"
+            )
+
+            return True
+        except Exception as e:
+            logger.warn(
+                f"Failed to store answer for client {client_id} for question {question_id}: {e}")
 
     def close_question(self):
         try:
@@ -293,8 +319,8 @@ class DynamoDbQuiz:
                     "PKEY": {"S": f"Quiz#{self.quiz_id}"},
                     "SKEY": {"S": "Instance"}
                 },
-                UpdateExpression="SET IsQuestionOpen = :value",
-                ExpressionAttributeValues={":value": {"BOOL": False}},
+                UpdateExpression="SET IsQuestionOpen = :closed",
+                ExpressionAttributeValues={":closed": {"BOOL": False}},
             )
 
             return True

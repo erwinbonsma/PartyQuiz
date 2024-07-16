@@ -38,6 +38,23 @@ def check_string_value(name: str, value: str, len_range: tuple[int, int]):
         )
 
 
+class MessageWrapper:
+    """
+    Wrapper to generate exception when a required field is missing
+    """
+
+    def __init__(self, msg):
+        self.msg = msg
+
+    def __getitem__(self, key):
+        if (value := self.msg.get(key)) is None:
+            raise HandlerException(f"Field '{key}' is missing", ErrorCode.MissingField)
+        return value
+
+    def get(self, key):
+        return self.msg.get(key)
+
+
 def create_question(author_id, question, choices, answer):
     check_string_value("question", question, Config.RANGE_QUESTION_LENGTH)
     check_int_value("number of choices", len(choices),
@@ -92,7 +109,7 @@ class QuizMessageHandler(BaseMessageHandler):
                                if client.role == ClientRole.Player),
             "question_pool_size": len(self.quiz.questions_pool()),
             "is_question_open": self.quiz.is_question_open,
-            "question_index": self.quiz.question_index,
+            "question_id": self.quiz.question_id,
         }), skip_players=True)
 
     async def create_quiz(self, name):
@@ -173,6 +190,14 @@ class QuizMessageHandler(BaseMessageHandler):
             "client_id": client_id  # Return to enable client to rejoin
         }))
 
+        if self.quiz.is_question_open:
+            # Enable client that (re-)joined an in-progress quiz answer current question
+            await self.send_message(json.dumps({
+                "type": "question-opened",
+                "question_id": self.quiz.question_id,
+                "num_choices": len(self.quiz.num_choices),
+            }))
+
         await self.send_status_message()
 
     async def leave_quiz(self):
@@ -235,9 +260,40 @@ class QuizMessageHandler(BaseMessageHandler):
 
         await self.broadcast(json.dumps({
             "type": "question-opened",
+            "question_id": question_id,
+            "num_choices": len(question.choices),
             "question": question.asdict(strip_answer=True),
-            "question_id": question_id
         }))
+
+    async def answer(self, question_id, answer):
+        """
+        Give an answer to the currently open question
+        """
+        client_id = self.check_role(ClientRole.Player)
+
+        if question_id != self.quiz.question_id:
+            raise HandlerException(
+                f"Answer does not match current question: {question_id} != {self.quiz.question_id}",
+                ErrorCode.InvalidValue)
+        if not self.quiz.is_question_open:
+            raise HandlerException(
+                "Cannot answer question anymore", ErrorCode.NotAllowed)
+
+        check_int_value("answer", answer, (1, self.quiz.num_choices))
+
+        if not self.quiz.store_answer(question_id, client_id, answer):
+            raise HandlerException(
+                "Can only answer question once", ErrorCode.NotAllowed)
+
+        # Notify host that (another) answer has been received.
+        # Note: not including total number of answers received for current question, as this is
+        # relatively expensive to obtain (and host can keep local count).
+        await self.broadcast(json.dumps({
+            "type": "answer-received",
+            "question_id": question_id
+        }), skip_players=True)
+
+        await self.send_message(ok_message())
 
     async def close_question(self):
         """
@@ -245,16 +301,18 @@ class QuizMessageHandler(BaseMessageHandler):
         """
         self.check_role(ClientRole.Host)
 
-        if not (question_id := self.quiz.close_question()):
+        if not self.quiz.close_question():
             raise HandlerException(
                 "Failed to open question", ErrorCode.InternalServerError)
 
         await self.broadcast(json.dumps({
             "type": "question-closed",
-            "question_id": question_id
+            "question_id": self.quiz.question_id
         }))
 
     async def _handle_message(self, msg):
+        msg = MessageWrapper(msg)
+
         cmd = msg["action"]
 
         if cmd == "create-quiz":
@@ -272,6 +330,9 @@ class QuizMessageHandler(BaseMessageHandler):
                 client_id=msg.get("client_id")
             )
 
+        if cmd == "get-status":
+            return await self.send_status_message()
+
         if cmd == "set-pool-question":
             return await self.set_pool_question(msg["question"], msg["choices"], msg["answer"])
         if cmd == "get-pool-questions":
@@ -280,6 +341,9 @@ class QuizMessageHandler(BaseMessageHandler):
         if cmd == "open-question":
             return await self.open_question(msg["author"], msg["question"], msg["choices"],
                                             msg["answer"])
+        if cmd == "answer":
+            return await self.answer(msg["question_id"], msg["answer"])
+
         if cmd == "close-question":
             return await self.close_question()
 
