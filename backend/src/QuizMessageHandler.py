@@ -310,6 +310,19 @@ class QuizMessageHandler(BaseMessageHandler):
             "question_id": self.quiz.question_id
         }))
 
+    async def get_questions(self):
+        self.check_role(ClientRole.Host)
+
+        return await self.send_message(json.dumps({
+            "type": "questions",
+            "questions": {id: q.asdict() for id, q in self.quiz.get_questions().items()},
+        }))
+
+    async def get_answers(self):
+        self.check_role(ClientRole.Host)
+
+        pass  # TODO
+
     async def _handle_message(self, msg):
         msg = MessageWrapper(msg)
 
@@ -346,6 +359,11 @@ class QuizMessageHandler(BaseMessageHandler):
 
         if cmd == "close-question":
             return await self.close_question()
+
+        if cmd == "get-questions":
+            return await self.get_questions()
+        if cmd == "get-answers":
+            return await self.get_answers()
 
         self.logger.warn("Unrecognized command %s", cmd)
         return await self.send_message(error_message(ErrorCode.UnknownCommand))

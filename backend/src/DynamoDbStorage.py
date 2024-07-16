@@ -251,7 +251,8 @@ class DynamoDbQuiz:
                     "SKEY": {"S": str(question_id)},
                     "Question": {"S": question.question},
                     "Choices": {"SS": question.choices},
-                    "Answer": {"N": str(question.answer)}
+                    "Answer": {"N": str(question.answer)},
+                    "Author": {"S": question.author_id},
                 },
             )
 
@@ -259,6 +260,26 @@ class DynamoDbQuiz:
         except Exception as e:
             logger.warn(
                 f"Failed to set question {question_id} for Quiz {self.quiz_id}: {e}")
+
+    def get_questions(self) -> list[Question]:
+        try:
+            response = self.client.query(
+                TableName=Config.MAIN_TABLE,
+                KeyConditionExpression="PKEY = :pkey",
+                ExpressionAttributeValues={":pkey": {"S": f"Questions#{self.quiz_id}"}}
+            )
+
+            return {
+                item["SKEY"]["S"]: Question(
+                    author_id=item["Author"]["S"],
+                    question=item["Question"]["S"],
+                    choices=item["Choices"]["SS"],
+                    answer=int(item["Answer"]["N"])
+                )
+                for item in response["Items"]
+            }
+        except Exception as e:
+            logger.warn(f"Failed to get questions for Quiz {self.quiz_id}: {e}")
 
     def open_question(self, question: Question) -> int:
         try:
