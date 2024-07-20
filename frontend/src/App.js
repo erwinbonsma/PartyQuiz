@@ -1,39 +1,84 @@
 import './App.css';
 import { useState, useEffect } from 'react';
-import Col from 'react-bootstrap/Col';
-import Container from 'react-bootstrap/Container';
-import Row from 'react-bootstrap/Row';
-import Button from 'react-bootstrap/Button';
+
+import config from './utils/config';
+import { handleResponse } from './utils';
+
+import { JoinQuiz } from './Components/JoinQuiz';
+import { Registration } from './Components/Registration';
 
 function App() {
-	const [nameInput, setNameInput] = useState('');
+	const [playerName, setPlayerName] = useState();
+	const [clientId, setClientId] = useState();
+    const [joinedQuiz, setJoinedQuiz] = useState(false);
 	const [errorMessage, setErrorMessage] = useState();
+	const [websocket, setWebsocket] = useState();
 
-	const handleInputChange = (event) => {
-		setNameInput(event.target.value);
-		setErrorMessage('');
-	};
+    // Set-up websocket connection once player entered details
+	useEffect(() => {
+		if (websocket || !playerName || errorMessage) {
+			// Only set up websocket after registration
+			return
+		}
 
-	const handleRegistration = (event) => {
-		event.preventDefault();
+        // Create WebSocket connection.
+		const socket = new WebSocket(config.SERVICE_ENDPOINT);
 
-		console.info(`Handle registration of ${nameInput}`);
-	}
+		// Connection opened
+		socket.addEventListener('open', function (event) {
+			console.log("Opened websocket");
+			setWebsocket(socket);
+		});
+
+		const unsetSocket = () => {
+			setErrorMessage("Disconnected from server");
+			setWebsocket(undefined);
+		}
+		socket.addEventListener('close', unsetSocket);
+		socket.addEventListener('error', unsetSocket);
+
+		return function cleanup() {
+			if (websocket) {
+				console.log("Closing websocket");
+				setWebsocket(undefined);
+				websocket.close();
+			}
+		}
+	}, [websocket, playerName]);
+
+    // Auto-join quiz (or re-join after disconnect)
+    useEffect(() => {
+        if (!websocket || !clientId || joinedQuiz) {
+            return;
+        }
+
+        handleResponse(websocket, () => setJoinedQuiz(true));
+
+        websocket.send(JSON.stringify({
+			action: "connect",
+            quiz_id: config.QUIZ_ID,
+            client_id: clientId
+		}));
+    }, [websocket, clientId, joinedQuiz]);
+
+    const onRegistrationDone = (name) => {
+        setPlayerName(name);
+    }
+    const onQuizJoined = (clientId) => {
+        setClientId(clientId);
+    }
 
     return (
     <div className="App">
-        <Container>
-            <form onSubmit={handleRegistration} >
-            <Row><Col><h4>Registration</h4></Col></Row>
-            <Row><Col xs={12} sm={4}><p>Name:</p></Col>
-                 <Col xs={12} sm={8}><input size={20} type="text" value={nameInput} onChange={handleInputChange} /></Col></Row>
-            <Row className="justify-content-md-center">
-                <Col xs={6} sm={4}><Button type="submit" disabled={nameInput === '' || nameInput.length > 12} >Join Quiz</Button></Col></Row>
-            </form>
-            { errorMessage &&
-                <Row><Col><p className="Error">{errorMessage}</p></Col></Row>
-            }
-        </Container>
+        { joinedQuiz
+        ? <p>Joined quiz!</p>
+        : ( clientId
+            ? <p>Connecting to quiz</p>
+            : ( playerName
+                ? <JoinQuiz websocket={websocket} playerName={playerName} quizId={config.QUIZ_ID} onQuizJoined={onQuizJoined} />
+                : <Registration onRegistrationDone={onRegistrationDone} />))}
+        { errorMessage
+        && <p>Error: {errorMessage}</p> }
     </div>
   );
 }
