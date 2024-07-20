@@ -1,7 +1,7 @@
+from collections import defaultdict
+import logging
 from typing import Optional
 import boto3
-import json
-import logging
 from Common import Client, ClientRole, Config, Question
 
 logger = logging.getLogger('backend.dynamodb')
@@ -331,6 +331,25 @@ class DynamoDbQuiz:
         except Exception as e:
             logger.warn(
                 f"Failed to store answer for client {client_id} for question {question_id}: {e}")
+
+    def get_answers(self) -> dict[int, dict[str, int]]:
+        try:
+            response = self.client.query(
+                TableName=Config.MAIN_TABLE,
+                KeyConditionExpression="PKEY = :pkey",
+                ExpressionAttributeValues={":pkey": {"S": f"Answers#{self.quiz_id}"}}
+            )
+
+            answers = defaultdict(dict)
+            for item in response["Items"]:
+                question_id, client_id = item["SKEY"]["S"].split("#", 2)
+                answer = int(item["Answer"]["N"])
+                answers[int(question_id)][client_id] = answer
+
+            return answers
+        except Exception as e:
+            logger.warn(
+                f"Failed to retrieve answers for quiz {self.quiz_id}: {e}")
 
     def close_question(self):
         try:

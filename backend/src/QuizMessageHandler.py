@@ -321,7 +321,10 @@ class QuizMessageHandler(BaseMessageHandler):
     async def get_answers(self):
         self.check_role(ClientRole.Host)
 
-        pass  # TODO
+        return await self.send_message(json.dumps({
+            "type": "answers",
+            "answers": self.quiz.get_answers()
+        }))
 
     async def _handle_message(self, msg):
         msg = MessageWrapper(msg)
