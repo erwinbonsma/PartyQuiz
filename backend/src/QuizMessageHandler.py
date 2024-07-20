@@ -195,7 +195,7 @@ class QuizMessageHandler(BaseMessageHandler):
             await self.send_message(json.dumps({
                 "type": "question-opened",
                 "question_id": self.quiz.question_id,
-                "num_choices": len(self.quiz.num_choices),
+                "num_choices": self.quiz.num_choices,
             }))
 
         await self.send_status_message()
