@@ -261,7 +261,7 @@ class DynamoDbQuiz:
             logger.warn(
                 f"Failed to set question {question_id} for Quiz {self.quiz_id}: {e}")
 
-    def get_questions(self) -> list[Question]:
+    def get_questions(self) -> dict[str, Question]:
         try:
             response = self.client.query(
                 TableName=Config.MAIN_TABLE,
@@ -280,6 +280,21 @@ class DynamoDbQuiz:
             }
         except Exception as e:
             logger.warn(f"Failed to get questions for Quiz {self.quiz_id}: {e}")
+
+    def get_solutions(self) -> dict[str, int]:
+        try:
+            response = self.client.query(
+                TableName=Config.MAIN_TABLE,
+                KeyConditionExpression="PKEY = :pkey",
+                ExpressionAttributeValues={":pkey": {"S": f"Questions#{self.quiz_id}"}}
+            )
+
+            return {
+                item["SKEY"]["S"]: int(item["Answer"]["N"])
+                for item in response["Items"]
+            }
+        except Exception as e:
+            logger.warn(f"Failed to get solutions for Quiz {self.quiz_id}: {e}")
 
     def open_question(self, question: Question) -> int:
         try:
@@ -332,7 +347,7 @@ class DynamoDbQuiz:
             logger.warn(
                 f"Failed to store answer for client {client_id} for question {question_id}: {e}")
 
-    def get_answers(self) -> dict[int, dict[str, int]]:
+    def get_answers(self) -> dict[str, dict[str, int]]:
         try:
             response = self.client.query(
                 TableName=Config.MAIN_TABLE,
@@ -344,7 +359,7 @@ class DynamoDbQuiz:
             for item in response["Items"]:
                 question_id, client_id = item["SKEY"]["S"].split("#", 2)
                 answer = int(item["Answer"]["N"])
-                answers[int(question_id)][client_id] = answer
+                answers[question_id][client_id] = answer
 
             return answers
         except Exception as e:

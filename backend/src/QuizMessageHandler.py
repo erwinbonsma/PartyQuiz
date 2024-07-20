@@ -323,7 +323,8 @@ class QuizMessageHandler(BaseMessageHandler):
 
         return await self.send_message(json.dumps({
             "type": "answers",
-            "answers": self.quiz.get_answers()
+            "answers": self.quiz.get_answers(),
+            "solutions": self.quiz.get_solutions(),
         }))
 
     async def _handle_message(self, msg):
