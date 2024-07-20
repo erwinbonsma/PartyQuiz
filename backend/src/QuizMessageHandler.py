@@ -75,41 +75,40 @@ class QuizMessageHandler(BaseMessageHandler):
             raise HandlerException(
                 f"Quiz {quiz_id} not found", ErrorCode.QuizNotFound)
 
-        self.clients = self.quiz.clients()
-        # self.client_id = self.clients.get(self.connection, None)
-        # if self.client_id is None:
-        #     self.logger.warn(
-        #         "No client ID for connection %s. #clients=%d",
-        #         self.connection, len(self.clients)
-        #     )
-
     def check_role(self, required_role: ClientRole):
-        client = self.quiz.get_client(self.connection)
-        if client is None:
+        client_id = self.quiz.get_client_id(self.connection)
+        if client_id is None:
             raise HandlerException(
                 "Must join quiz first", ErrorCode.NotAllowed)
-        if client.role != required_role:
-            raise HandlerException("Invalid role", ErrorCode.NotAllowed)
-        return client.id
+
+        if required_role == ClientRole.Host:
+            if self.quiz.host_id != client_id:
+                raise HandlerException(f"{client_id} is not the host", ErrorCode.NotAllowed)
+        if required_role == ClientRole.Player:
+            if not client_id in self.quiz.players:
+                raise HandlerException(f"{client_id} is not a player", ErrorCode.NotAllowed)
+
+        return client_id
 
     async def broadcast(self, message, skip_players=False):
-        if self.clients:
-            tasks = [asyncio.create_task(self.comms.send(ws, message))
-                     for ws, client in self.clients.items()
-                     if not skip_players or client.role != ClientRole.Player]
-            if tasks:
-                self.logger.info(
-                    "broadcasting %s to %d clients", message, len(tasks))
-                await asyncio.wait(tasks)
+        tasks = [asyncio.create_task(self.comms.send(ws, message))
+                 for ws, client_id in self.quiz.clients.items()
+                 if not skip_players or client_id not in self.quiz.players]
+        if tasks:
+            self.logger.info(
+                "broadcasting %s to %d clients", message, len(tasks))
+            await asyncio.wait(tasks)
 
     async def send_status_message(self):
         await self.broadcast(status_message({
-            "host_present": any(client.id == self.quiz.host for client in self.clients.values()),
-            "num_players": sum(1 for client in self.clients.values()
-                               if client.role == ClientRole.Player),
+            "host_present": any(client_id == self.quiz.host_id
+                                for client_id in self.quiz.clients.values()),
+            "num_players": len(self.quiz.players),
+            "num_players_present": sum(1 for client_id in self.quiz.clients.values()
+                                       if client_id in self.quiz.players),
             "question_pool_size": len(self.quiz.questions_pool()),
-            "is_question_open": self.quiz.is_question_open,
             "question_id": self.quiz.question_id,
+            "is_question_open": self.quiz.is_question_open,
         }), skip_players=True)
 
     async def create_quiz(self, name):
@@ -129,66 +128,23 @@ class QuizMessageHandler(BaseMessageHandler):
             "host_id": host_id,
         }))
 
-    async def host_quiz(self, quiz_id, host_id):
+    async def connect(self, quiz_id, client_id):
         """
-        Join (or re-join) quiz as a host
+        Connect to quiz (as host, player or observer)
         """
-        if self.quiz.host != host_id:
-            raise HandlerException("Invalid host ID", ErrorCode.NotAllowed)
-
         if not self.db.set_quiz_for_connection(self.connection, quiz_id):
             raise HandlerException(
                 f"Failed to link connection to Quiz {quiz_id}",
                 ErrorCode.InternalServerError
             )
 
-        if not self.quiz.add_client(self.connection, host_id, ClientRole.Host):
+        if not self.quiz.add_client(self.connection, client_id):
             raise HandlerException(
-                f"Failed to add host to Quiz {quiz_id}",
+                f"Failed to add client {client_id} to Quiz {quiz_id}",
                 ErrorCode.InternalServerError
             )
 
-        return await self.send_message(ok_message())
-
-    async def join_quiz(self, quiz_id, player_name, client_id=None):
-        """
-        Join (or re-join) a quiz (as a player)
-        """
-        check_string_value("name", player_name, Config.RANGE_NAME_LENGTH)
-
-        if len(self.clients) >= Config.MAX_CLIENTS_PER_QUIZ:
-            raise HandlerException(
-                f"Player limit reached for Quiz {quiz_id}",
-                ErrorCode.PlayerLimitReached
-            )
-
-        if not self.db.set_quiz_for_connection(self.connection, quiz_id):
-            raise HandlerException(
-                f"Failed to link connection to Quiz {quiz_id}",
-                ErrorCode.InternalServerError
-            )
-
-        if client_id:
-            # Rejoin after an (accidental) disconnect.
-            pass
-        else:
-            client_id = create_id()
-
-        updated_clients = self.quiz.add_client(
-            self.connection, client_id, ClientRole.Player, player_name
-        )
-        if updated_clients is None:
-            raise HandlerException(
-                "Failed to join quiz. Please try again",
-                ErrorCode.InternalServerError
-            )
-        self.clients = updated_clients
-        self.client_id = client_id
-
-        await self.send_message(ok_message({
-            "quiz_name": self.quiz.name,
-            "client_id": client_id  # Return to enable client to rejoin
-        }))
+        await self.send_message(ok_message())
 
         if self.quiz.is_question_open:
             # Enable client that (re-)joined an in-progress quiz answer current question
@@ -200,25 +156,69 @@ class QuizMessageHandler(BaseMessageHandler):
 
         await self.send_status_message()
 
-    async def leave_quiz(self):
+    async def disconnect(self):
         # Retry removal. It can fail if two (or more clients) disconnect at the same time. In that
         # case, CAS ensures that (at least) one update succeeded so removal should eventually
         # succeed. Note, in contrast to join_game, cannot make client responsible for retrying, as
         # it will typically have disconnected.
+        client_id = self.quiz.clients[self.connection]
+        if client_id is None:
+            raise HandlerException(
+                f"Client {client_id} not connected to Quiz {self.quiz.quiz_id}",
+                ErrorCode.InternalServerError
+            )
+
         for attempt in range(1, 1 + Config.MAX_ATTEMPTS):
-            updated_clients = self.quiz.remove_client(self.connection)
-            if updated_clients is not None:
+            if self.quiz.remove_client(self.connection) is not None:
                 break
             await asyncio.sleep(random.random() * attempt)
-
-        if updated_clients is None:
+        else:
             return self.logger.error(
-                f"Failed to remove {self.client_id} from Quiz {self.quiz.quiz_id}")
-        self.clients = updated_clients
+                f"Failed to remove {client_id} from Quiz {self.quiz.quiz_id}")
 
         self.db.clear_quiz_for_connection(self.connection)
 
         await self.send_status_message()
+
+    async def join_quiz(self, quiz_id, player_name):
+        """
+        Join quiz (as a player)
+        """
+        check_string_value("name", player_name, Config.RANGE_NAME_LENGTH)
+
+        if len(self.quiz.players) >= Config.MAX_PLAYERS_PER_QUIZ:
+            raise HandlerException(
+                f"Player limit reached for Quiz {quiz_id}",
+                ErrorCode.PlayerLimitReached
+            )
+
+        client_id = create_id()
+        if not self.quiz.add_player(client_id, player_name):
+            raise HandlerException(
+                f"Failed to add player {player_name} as {client_id}",
+                ErrorCode.InternalServerError
+            )
+
+        await self.send_message(ok_message({
+            "quiz_name": self.quiz.name,
+            "client_id": client_id  # Return to enable client to rejoin
+        }))
+
+        await self.send_status_message()
+
+    async def get_players(self):
+        self.check_role(ClientRole.Host)
+
+        client_ids = set(self.quiz.clients.values())
+
+        return await self.send_message(json.dumps({
+            "type": "players",
+            "players": {id: {
+                **player.asdict(),
+                "online": id in client_ids
+            }
+                for id, player in self.quiz.players.items()}
+        }))
 
     async def set_pool_question(self, question, choices, answer):
         """
@@ -338,14 +338,16 @@ class QuizMessageHandler(BaseMessageHandler):
         quiz_id = msg["quiz_id"]
         self.fetch_quiz(quiz_id)
 
-        if cmd == "host-quiz":
-            return await self.host_quiz(quiz_id, msg["host_id"])
         if cmd == "join-quiz":
             return await self.join_quiz(
                 quiz_id,
-                player_name=msg["player_name"],
-                client_id=msg.get("client_id")
+                player_name=msg["player_name"]
             )
+        if cmd == "get-players":
+            return await self.get_players()
+
+        if cmd == "connect":
+            return await self.connect(quiz_id, msg["client_id"])
 
         if cmd == "get-status":
             return await self.send_status_message()

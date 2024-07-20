@@ -1,8 +1,9 @@
 from collections import defaultdict
+import functools
 import logging
 from typing import Optional
 import boto3
-from Common import Client, ClientRole, Config, Question
+from Common import Player, Config, Question
 
 logger = logging.getLogger('backend.dynamodb')
 
@@ -97,11 +98,11 @@ class DynamoDbQuiz:
         self.quiz_id = quiz_id
         self.client = client
 
-        self.__clients = None
         self.__items = None
+        self.__instance_item = None
 
     @property
-    def host(self) -> str:
+    def host_id(self) -> str:
         return self.__instance_item["Host"]["S"]
 
     @property
@@ -146,37 +147,37 @@ class DynamoDbQuiz:
         except Exception as e:
             logger.warn(f"Failed to check existence of Quiz {self.quiz_id}: {e}")
 
-    def clients(self):
-        if self.__clients is None:
-            self.__clients = {}
-            for item in self.__items:
-                skey = item["SKEY"]["S"]
-                if skey.startswith("Conn#"):
-                    self.__clients[skey[5:]] = Client(
-                        id=item["ClientId"]["S"],
-                        role=ClientRole(int(item["Role"]["N"])),
-                        name=optional_str(item, "ClientName"),
-                    )
+    @property
+    @functools.cache
+    def clients(self) -> dict[str, str]:
+        return {
+            skey[5:]: item["ClientId"]["S"]
+            for item in self.__items
+            if (skey := item["SKEY"]["S"]).startswith("Conn#")
+        }
 
-        return self.__clients
+    @property
+    @functools.cache
+    def players(self) -> dict[str, Player]:
+        return {
+            skey[7:]: Player(name=item["Name"]["S"])
+            for item in self.__items
+            if (skey := item["SKEY"]["S"]).startswith("Player#")
+        }
 
-    def add_client(self, connection, client_id, role, name=None):
+    def add_client(self, connection, client_id):
         try:
             item = {
                 "PKEY": {"S": f"Quiz#{self.quiz_id}"},
                 "SKEY": {"S": f"Conn#{connection}"},
                 "ClientId": {"S": client_id},
-                "Role": {"N": str(role)}
             }
-            if name:
-                item["ClientName"] = {"S": name}
 
             self.client.put_item(TableName=Config.MAIN_TABLE, Item=item)
 
-            clients = self.clients()
-            clients[connection] = Client(client_id, role, name)
+            self.clients[connection] = client_id
 
-            return clients
+            return self.clients
         except Exception as e:
             logger.warn(f"Failed to add Client {client_id} to Quiz {self.quiz_id}: {e}")
 
@@ -190,15 +191,33 @@ class DynamoDbQuiz:
                 }
             )
 
-            clients = self.clients()  # Ensure it is fetched
-            del clients[connection]
+            del self.clients[connection]
 
-            return clients
+            return self.clients
         except Exception as e:
             logger.warn(f"Failed to remove Connection {connection} from Room {self.quiz_id}: {e}")
 
-    def get_client(self, connection) -> Optional[Client]:
-        return self.clients().get(connection)
+    def get_client_id(self, connection) -> str:
+        return self.clients.get(connection)
+
+    def add_player(self, client_id: str, name: str) -> dict[str, Player]:
+        try:
+            self.client.put_item(
+                TableName=Config.MAIN_TABLE,
+                Item={
+                    "PKEY": {"S": f"Quiz#{self.quiz_id}"},
+                    "SKEY": {"S": f"Player#{client_id}"},
+                    "Name": {"S": name},
+                },
+                ConditionExpression="attribute_not_exists(PKEY)"
+            )
+
+            self.players[client_id] = name
+
+            return self.players
+        except Exception as e:
+            logger.warn(
+                f"Failed to add player {client_id} named {name}: {e}")
 
     def set_pool_question(self, question: Question):
         try:

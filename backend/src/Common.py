@@ -6,7 +6,8 @@ from typing import Optional
 
 class Config:
     MAIN_TABLE = "PartyQuiz-dev"
-    MAX_CLIENTS_PER_QUIZ = 40
+    MAX_PLAYERS_PER_QUIZ = 40
+    MAX_CLIENTS_PER_QUIZ = 50
     MAX_ATTEMPTS = 3
     RANGE_NAME_LENGTH = (2, 20)
     RANGE_CHOICES_PER_QUESTION = (4, 4)
@@ -21,10 +22,12 @@ class ClientRole(IntEnum):
 
 
 @dataclass
-class Client:
-    id: str
-    role: ClientRole
-    name: Optional[str]
+class Player:
+    name: str
+    # TODO: Add group/avatar
+
+    def asdict(self):
+        return asdict(self)
 
 
 @dataclass
