@@ -1,5 +1,6 @@
 import './App.css';
 import { useState, useEffect } from 'react';
+import Button from 'react-bootstrap/Button';
 
 import config from './utils/config';
 import { handleResponse } from './utils';
@@ -33,6 +34,7 @@ function App() {
 		const unsetSocket = () => {
 			setErrorMessage("Disconnected from server");
 			setWebsocket(undefined);
+            setJoinedQuiz(false);
 		}
 		socket.addEventListener('close', unsetSocket);
 		socket.addEventListener('error', unsetSocket);
@@ -44,7 +46,7 @@ function App() {
 				websocket.close();
 			}
 		}
-	}, [websocket, playerName]);
+	}, [websocket, playerName, errorMessage]);
 
     // Auto-join quiz (or re-join after disconnect)
     useEffect(() => {
@@ -68,19 +70,17 @@ function App() {
         setClientId(clientId);
     }
 
-    return (
-    <div className="App">
+    return <div className="App">
         { joinedQuiz
         ? <p>Joined quiz!</p>
         : ( clientId
-            ? <p>Connecting to quiz</p>
+            ? <p>Registered for quiz</p>
             : ( playerName
-                ? <JoinQuiz websocket={websocket} playerName={playerName} quizId={config.QUIZ_ID} onQuizJoined={onQuizJoined} />
+                ? (websocket && <JoinQuiz websocket={websocket} playerName={playerName} quizId={config.QUIZ_ID} onQuizJoined={onQuizJoined} />)
                 : <Registration onRegistrationDone={onRegistrationDone} />))}
         { errorMessage
-        && <p>Error: {errorMessage}</p> }
-    </div>
-  );
+        && <><p>Error: {errorMessage}</p><Button onClick={() => setErrorMessage('')}>Retry</Button></> }
+    </div>;
 }
 
 export default App;
