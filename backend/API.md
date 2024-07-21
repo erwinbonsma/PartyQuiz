@@ -5,14 +5,14 @@ You can use `wscat` to interactively test.
 
 ## Registration
 
-Creating a quiz. This makes you the host.
+Create a quiz. This makes you the host.
 ```
 { "action": "create-quiz", "quiz_name": "Test Quiz", "make_default": true }
 ```
 
-Joining the quiz, as a player.
+Register for a quiz, as a player.
 ```
-{ "action": "join-quiz", "player_name": "jane" }
+{ "action": "register", "player_name": "jane" }
 ```
 When quiz_id is not set, will join the default quiz (if any)
 
@@ -22,7 +22,7 @@ Both host and players need to connect to the quiz
 ```
 The connect command can also be used to reconnect to a quiz when you lost connection.
 
-The host can check which players have joined and who are currently connected.
+The host can check which players have registered and who are currently connected.
 ```
 { "action": "get-players" }
 ```

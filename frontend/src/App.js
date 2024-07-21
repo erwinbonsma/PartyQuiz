@@ -5,19 +5,21 @@ import Button from 'react-bootstrap/Button';
 import config from './utils/config';
 import { handleResponse } from './utils';
 
-import { JoinQuiz } from './Components/JoinQuiz';
-import { Registration } from './Components/Registration';
+import { QuizRegistration } from './Components/QuizRegisteration';
+import { RegistrationForm } from './Components/RegistrationForm';
 
 function App() {
+    const [registrationFilled, setRegistrationFilled] = useState(false);
 	const [playerName, setPlayerName] = useState();
 	const [clientId, setClientId] = useState();
+    const [quizId, setQuizId] = useState();
     const [joinedQuiz, setJoinedQuiz] = useState(false);
 	const [errorMessage, setErrorMessage] = useState();
 	const [websocket, setWebsocket] = useState();
 
     // Set-up websocket connection once player entered details
 	useEffect(() => {
-		if (websocket || !playerName || errorMessage) {
+		if (websocket || !registrationFilled || errorMessage) {
 			// Only set up websocket after registration
 			return
 		}
@@ -58,16 +60,21 @@ function App() {
 
         websocket.send(JSON.stringify({
 			action: "connect",
-            quiz_id: config.QUIZ_ID,
+            quiz_id: quizId,
             client_id: clientId
 		}));
     }, [websocket, clientId, joinedQuiz]);
 
-    const onRegistrationDone = (name) => {
+    const onRegistrationFilled = (name) => {
         setPlayerName(name);
+        setRegistrationFilled(true);
     }
-    const onQuizJoined = (clientId) => {
+    const onRegistrationDone = (clientId, quizId) => {
         setClientId(clientId);
+        setQuizId(quizId);
+    }
+    const onRegistrationCancelled = () => {
+        setRegistrationFilled(false);
     }
 
     return <div className="App">
@@ -75,9 +82,12 @@ function App() {
         ? <p>Joined quiz!</p>
         : ( clientId
             ? <p>Registered for quiz</p>
-            : ( playerName
-                ? (websocket && <JoinQuiz websocket={websocket} playerName={playerName} quizId={config.QUIZ_ID} onQuizJoined={onQuizJoined} />)
-                : <Registration onRegistrationDone={onRegistrationDone} />))}
+            : ( registrationFilled
+                ? (websocket && <QuizRegistration websocket={websocket} playerName={playerName}
+                                onDone={onRegistrationDone}
+                                onCancel={onRegistrationCancelled}/>)
+                : <RegistrationForm playerName={playerName}
+                  onDone={onRegistrationFilled} />))}
         { errorMessage
         && <><p>Error: {errorMessage}</p><Button onClick={() => setErrorMessage('')}>Retry</Button></> }
     </div>;

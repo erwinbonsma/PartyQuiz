@@ -5,8 +5,8 @@ import Container from 'react-bootstrap/Container';
 import Row from 'react-bootstrap/Row';
 import Button from 'react-bootstrap/Button';
 
-export function Registration({ onRegistrationDone }) {
-    const [nameInput, setNameInput] = useState('');
+export function RegistrationForm({ playerName, onDone }) {
+    const [nameInput, setNameInput] = useState(playerName || '');
 
 	const handleInputChange = (event) => {
 		setNameInput(event.target.value);
@@ -15,7 +15,7 @@ export function Registration({ onRegistrationDone }) {
 	const handleRegistration = (event) => {
 		event.preventDefault();
 
-        onRegistrationDone(nameInput);
+        onDone(nameInput);
 	};
 
     return (
@@ -25,7 +25,7 @@ export function Registration({ onRegistrationDone }) {
                 <Row><Col xs={12} sm={4}><p>Name:</p></Col>
                     <Col xs={12} sm={8}><input size={20} type="text" value={nameInput} onChange={handleInputChange} /></Col></Row>
                 <Row className="justify-content-md-center">
-                    <Col xs={6} sm={4}><Button type="submit" disabled={nameInput.length < 2 || nameInput.length > 20} >Register</Button></Col></Row>
+                    <Col xs={6} sm={4}><Button type="submit" disabled={nameInput.length < 2 || nameInput.length > 20} >OK</Button></Col></Row>
             </Container>
         </form>
     );

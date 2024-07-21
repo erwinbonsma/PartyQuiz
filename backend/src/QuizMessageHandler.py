@@ -185,9 +185,9 @@ class QuizMessageHandler(BaseMessageHandler):
 
         await self.send_status_message()
 
-    async def join_quiz(self, player_name, quiz_id=None):
+    async def register(self, player_name, quiz_id=None):
         """
-        Join quiz (as a player)
+        Register for a quiz (as a player)
         """
         check_string_value("name", player_name, Config.RANGE_NAME_LENGTH)
 
@@ -201,15 +201,13 @@ class QuizMessageHandler(BaseMessageHandler):
         if len(self.quiz.players) >= Config.MAX_PLAYERS_PER_QUIZ:
             raise HandlerException(
                 f"Player limit reached for Quiz {quiz_id}",
-                ErrorCode.PlayerLimitReached
-            )
+                ErrorCode.PlayerLimitReached)
 
         client_id = create_id()
         if not self.quiz.add_player(client_id, player_name):
             raise HandlerException(
                 f"Failed to add player {player_name} as {client_id}",
-                ErrorCode.InternalServerError
-            )
+                ErrorCode.InternalServerError)
 
         await self.send_message(ok_message({
             "quiz_id": quiz_id,
@@ -349,8 +347,8 @@ class QuizMessageHandler(BaseMessageHandler):
             return await self.create_quiz(
                 msg["quiz_name"], msg.get("make_default"))
 
-        if cmd == "join-quiz":
-            return await self.join_quiz(
+        if cmd == "register":
+            return await self.register(
                 player_name=msg["player_name"],
                 quiz_id=msg.get("quiz_id")
             )
