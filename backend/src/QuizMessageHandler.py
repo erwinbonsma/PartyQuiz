@@ -355,7 +355,13 @@ class QuizMessageHandler(BaseMessageHandler):
                 quiz_id=msg.get("quiz_id")
             )
 
-        quiz_id = msg["quiz_id"]
+        if (quiz_id := msg.get("quiz_id")) is None:
+            # To avoid extra look-up, best if client provides quiz_id in
+            # request. However, for manual testing (using wscat) it is
+            # convenient to be able to omit quiz_id.
+            if (quiz_id := self.db.quiz_for_connection(self.connection)) is None:
+                raise HandlerException("Not connected to quiz yet",
+                                       ErrorCode.NotConnected)
         self.fetch_quiz(quiz_id)
 
         if cmd == "get-players":
