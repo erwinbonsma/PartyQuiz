@@ -91,6 +91,40 @@ class DynamoDbStorage:
         except Exception as e:
             logger.warn(f"Failed to clear quiz for connection {connection}: {e}")
 
+    def set_default_quiz_id(self, quiz_id):
+        try:
+            response = self.client.put_item(
+                TableName=Config.MAIN_TABLE,
+                Item={
+                    "PKEY": {"S": f"DefaultQuiz"},
+                    "SKEY": {"S": "Instance"},
+                    "QuizId": {"S": quiz_id}
+                },
+                ReturnValues="ALL_OLD"
+            )
+
+            if "Attributes" in response:
+                old_quiz_id = response["Attributes"]["QuizId"]["S"]
+                logger.warn(f"Changed default quiz from {old_quiz_id} to {quiz_id}")
+            return True
+        except Exception as e:
+            logger.warn(f"Failed to change default quiz: {e}")
+
+    def get_default_quiz_id(self):
+        try:
+            response = self.client.get_item(
+                TableName=Config.MAIN_TABLE,
+                Key={
+                    "PKEY": {"S": f"DefaultQuiz"},
+                    "SKEY": {"S": "Instance"},
+                }
+            )
+
+            if "Item" in response:
+                return response["Item"]["QuizId"]["S"]
+        except Exception as e:
+            logger.warn(f"Failed to get default quiz: {e}")
+
 
 class DynamoDbQuiz:
 

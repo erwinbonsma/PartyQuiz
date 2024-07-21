@@ -111,7 +111,7 @@ class QuizMessageHandler(BaseMessageHandler):
             "is_question_open": self.quiz.is_question_open,
         }), skip_players=True)
 
-    async def create_quiz(self, name):
+    async def create_quiz(self, name, make_default=False):
         host_id = create_id()
 
         for _ in range(Config.MAX_ATTEMPTS):  # Multiple attempts to handle ID clash
@@ -119,9 +119,14 @@ class QuizMessageHandler(BaseMessageHandler):
             if self.db.create_quiz(quiz_id, host_id, name):
                 break
         else:
-            raise RuntimeError("Failed to create quiz")
+            raise HandlerException(
+                "Failed to create quiz", ErrorCode.InternalServerError)
 
         self.logger.info(f"Created Quiz {quiz_id} with Host {host_id}")
+
+        if make_default and not self.db.set_default_quiz_id(quiz_id):
+            raise HandlerException(
+                "Failed to make quiz default", ErrorCode.InternalServerError)
 
         return await self.send_message(ok_message({
             "quiz_id": quiz_id,
@@ -180,11 +185,18 @@ class QuizMessageHandler(BaseMessageHandler):
 
         await self.send_status_message()
 
-    async def join_quiz(self, quiz_id, player_name):
+    async def join_quiz(self, player_name, quiz_id=None):
         """
         Join quiz (as a player)
         """
         check_string_value("name", player_name, Config.RANGE_NAME_LENGTH)
+
+        if quiz_id is None:
+            if (quiz_id := self.db.get_default_quiz_id()) is None:
+                raise HandlerException(
+                    "Failed to get default quiz",
+                    ErrorCode.InternalServerError)
+            self.fetch_quiz(quiz_id)
 
         if len(self.quiz.players) >= Config.MAX_PLAYERS_PER_QUIZ:
             raise HandlerException(
@@ -200,6 +212,7 @@ class QuizMessageHandler(BaseMessageHandler):
             )
 
         await self.send_message(ok_message({
+            "quiz_id": quiz_id,
             "quiz_name": self.quiz.name,
             "client_id": client_id  # Return to enable client to rejoin
         }))
@@ -333,16 +346,18 @@ class QuizMessageHandler(BaseMessageHandler):
         cmd = msg["action"]
 
         if cmd == "create-quiz":
-            return await self.create_quiz(msg["quiz_name"])
+            return await self.create_quiz(
+                msg["quiz_name"], msg.get("make_default"))
+
+        if cmd == "join-quiz":
+            return await self.join_quiz(
+                player_name=msg["player_name"],
+                quiz_id=msg.get("quiz_id")
+            )
 
         quiz_id = msg["quiz_id"]
         self.fetch_quiz(quiz_id)
 
-        if cmd == "join-quiz":
-            return await self.join_quiz(
-                quiz_id,
-                player_name=msg["player_name"]
-            )
         if cmd == "get-players":
             return await self.get_players()
 
