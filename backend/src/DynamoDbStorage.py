@@ -126,6 +126,15 @@ class DynamoDbStorage:
             logger.warn(f"Failed to get default quiz: {e}")
 
 
+def question_from_item(item, author_id=None):
+    return Question(
+        author_id=author_id if author_id else item["Author"]["S"],
+        question=item["Question"]["S"],
+        choices=[choice["S"] for choice in item["Choices"]["L"]],
+        answer=int(item["Answer"]["N"])
+    )
+
+
 class DynamoDbQuiz:
 
     def __init__(self, quiz_id, client):
@@ -280,12 +289,7 @@ class DynamoDbQuiz:
             )
 
             return [
-                Question(
-                    author_id=skey[9:],
-                    question=item["Question"]["S"],
-                    choices=[choice["S"] for choice in item["Choices"]["L"]],
-                    answer=int(item["Answer"]["N"])
-                )
+                question_from_item(item, author_id=skey[9:])
                 for item in response["Items"]
                 if (skey := item["SKEY"]["S"]).startswith("ClientId#")
             ]
@@ -314,6 +318,22 @@ class DynamoDbQuiz:
             logger.warn(
                 f"Failed to set question {question_id} for Quiz {self.quiz_id}: {e}")
 
+    def get_question(self, question_id) -> Question:
+        try:
+            response = self.client.query(
+                TableName=Config.MAIN_TABLE,
+                KeyConditionExpression="PKEY = :pkey and SKEY = :skey",
+                ExpressionAttributeValues={
+                    ":pkey": {"S": f"Questions#{self.quiz_id}"},
+                    ":skey": {"S": str(question_id)},
+                }
+            )
+
+            if response["Items"]:
+                return question_from_item(response["Items"][0])
+        except Exception as e:
+            logger.warn(f"Failed to get questions for Quiz {self.quiz_id}: {e}")
+
     def get_questions(self) -> dict[str, Question]:
         try:
             response = self.client.query(
@@ -323,12 +343,7 @@ class DynamoDbQuiz:
             )
 
             return {
-                item["SKEY"]["S"]: Question(
-                    author_id=item["Author"]["S"],
-                    question=item["Question"]["S"],
-                    choices=[choice["S"] for choice in item["Choices"]["L"]],
-                    answer=int(item["Answer"]["N"])
-                )
+                item["SKEY"]["S"]: question_from_item(item)
                 for item in response["Items"]
             }
         except Exception as e:

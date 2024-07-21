@@ -151,14 +151,6 @@ class QuizMessageHandler(BaseMessageHandler):
 
         await self.send_message(ok_message())
 
-        if self.quiz.is_question_open:
-            # Enable client that (re-)joined an in-progress quiz answer current question
-            await self.send_message(json.dumps({
-                "type": "question-opened",
-                "question_id": self.quiz.question_id,
-                "num_choices": self.quiz.num_choices,
-            }))
-
         await self.send_status_message()
 
     async def disconnect(self):
@@ -272,7 +264,6 @@ class QuizMessageHandler(BaseMessageHandler):
         await self.broadcast(json.dumps({
             "type": "question-opened",
             "question_id": question_id,
-            "num_choices": len(question.choices),
             "question": question.asdict(strip_answer=True),
         }))
 
@@ -320,6 +311,28 @@ class QuizMessageHandler(BaseMessageHandler):
             "type": "question-closed",
             "question_id": self.quiz.question_id
         }))
+
+    async def get_question(self):
+        self.check_role(ClientRole.Player)
+
+        if self.quiz.is_question_open:
+            # Enable client that (re-)joined an in-progress quiz answer current
+            # question.
+            #
+            # Note: not checking if player already answered. That will be done
+            # if/when player answers.
+            question = self.quiz.get_question(self.quiz.question_id)
+
+            await self.send_message(json.dumps({
+                "type": "question-opened",
+                "question_id": self.quiz.question_id,
+                "question": question.asdict(strip_answer=True),
+            }))
+        else:
+            await self.send_message(json.dumps({
+                "type": "question-closed",
+                "question_id": self.quiz.question_id
+            }))
 
     async def get_questions(self):
         self.check_role(ClientRole.Host)
@@ -377,8 +390,10 @@ class QuizMessageHandler(BaseMessageHandler):
             return await self.get_pool_questions()
 
         if cmd == "open-question":
-            return await self.open_question(msg["author"], msg["question"], msg["choices"],
+            return await self.open_question(msg["author_id"], msg["question"], msg["choices"],
                                             msg["answer"])
+        if cmd == "get-question":
+            return await self.get_question()
         if cmd == "answer":
             return await self.answer(msg["question_id"], msg["answer"])
 

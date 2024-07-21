@@ -50,7 +50,12 @@ The host can view the pool questions (to use it as source for the quiz questions
 
 The host can open a question:
 ```
-{ "action": "open-question", "question": "What is 1 + 1?", "choices": ["0", "1", "2", "3"], "answer": 3, "author": "bob" }
+{ "action": "open-question", "question": "What is 1 + 1?", "choices": ["0", "1", "2", "3"], "answer": 3, "author_id": "XXXXXX" }
+```
+
+Players will receive a notification that a new question is available (but with the answer omitted):
+```
+{"type": "question-opened", "question_id": 7, "question": { ... }}
 ```
 
 When a question is opened, each player can answer it (but only once):
@@ -62,6 +67,17 @@ The host can close a question to stop acception answers:
 ```
 { "action": "close-question" }
 ```
+
+Players are notified via a `question-closed` message:
+```
+{"type": "question-closed", "question_id": 7 }
+```
+
+When players join a quiz midway they can query if a question is currently open.
+```
+{ "action": "get-question" }
+```
+In response they receive a `question-opened` or `question-closed` message.
 
 ## Scoring the quiz
 
