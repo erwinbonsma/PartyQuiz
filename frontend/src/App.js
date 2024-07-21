@@ -5,6 +5,7 @@ import Button from 'react-bootstrap/Button';
 import config from './utils/config';
 import { handleResponse } from './utils';
 
+import { PlayQuiz } from './Components/PlayQuiz';
 import { QuizRegistration } from './Components/QuizRegisteration';
 import { RegistrationForm } from './Components/RegistrationForm';
 
@@ -79,7 +80,7 @@ function App() {
 
     return <div className="App">
         { joinedQuiz
-        ? <p>Joined quiz!</p>
+        ? (websocket && <PlayQuiz websocket={websocket} quizId={quizId} />)
         : ( clientId
             ? <p>Registered for quiz</p>
             : ( registrationFilled
