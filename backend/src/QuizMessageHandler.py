@@ -257,7 +257,7 @@ class QuizMessageHandler(BaseMessageHandler):
         self.check_role(ClientRole.Host)
 
         return await self.send_message(ok_message({
-            "pool_questions": [q.asdict() for q in self.quiz.questions_pool()]
+            "pool_questions": [q.asdict(strip_answer=False) for q in self.quiz.questions_pool()]
         }))
 
     async def open_question(self, author_id, question, choices, answer):
@@ -328,7 +328,7 @@ class QuizMessageHandler(BaseMessageHandler):
 
         return await self.send_message(json.dumps({
             "type": "questions",
-            "questions": {id: q.asdict() for id, q in self.quiz.get_questions().items()},
+            "questions": {id: q.asdict(strip_answer=False) for id, q in self.quiz.get_questions().items()},
         }))
 
     async def get_answers(self):
