@@ -6,13 +6,10 @@ import config from './utils/config';
 import { handleResponse } from './utils';
 
 import { PlayQuiz } from './Components/PlayQuiz';
-import { QuizRegistration } from './Components/QuizRegisteration';
-import { RegistrationForm } from './Components/RegistrationForm';
+import { QuizRegistration } from './Components/QuizRegistration';
 import { SubmitQuestion } from './Components/SubmitQuestion';
 
 function App() {
-    const [registrationFilled, setRegistrationFilled] = useState(false);
-	const [playerName, setPlayerName] = useState();
 	const [clientId, setClientId] = useState();
     const [quizId, setQuizId] = useState();
     const [joinedQuiz, setJoinedQuiz] = useState(false);
@@ -20,19 +17,14 @@ function App() {
 	const [errorMessage, setErrorMessage] = useState();
 	const [websocket, setWebsocket] = useState();
 
-    // Set-up websocket connection once player entered details
-	useEffect(() => {
-		if (websocket || !registrationFilled || errorMessage) {
-			// Only set up websocket after registration
-			return
-		}
-
+    const createWebsocket = (onOpen) => {
         // Create WebSocket connection.
 		const socket = new WebSocket(config.SERVICE_ENDPOINT);
 
 		// Connection opened
 		socket.addEventListener('open', function (event) {
 			console.log("Opened websocket");
+            onOpen?.(socket);
 			setWebsocket(socket);
 		});
 
@@ -44,6 +36,28 @@ function App() {
 		socket.addEventListener('close', unsetSocket);
 		socket.addEventListener('error', unsetSocket);
 
+        return socket;
+    }
+
+    const getWebsocket = (onOpen) => {
+        if (websocket) {
+            onOpen(websocket);
+        } else {
+            createWebsocket(onOpen);
+        }
+    };
+
+	useEffect(() => {
+		if (errorMessage || !quizId) {
+			return
+		}
+
+        if (!websocket) {
+            // Create websocket if needed. It is typically set-up during
+            // registration, but done here to recover from disconnects.
+            createWebsocket();
+        }
+
 		return function cleanup() {
 			if (websocket) {
 				console.log("Closing websocket");
@@ -51,7 +65,7 @@ function App() {
 				websocket.close();
 			}
 		}
-	}, [websocket, playerName, errorMessage]);
+	}, [websocket, quizId, errorMessage]);
 
     // Auto-join quiz (or re-join after disconnect)
     useEffect(() => {
@@ -68,16 +82,9 @@ function App() {
 		}));
     }, [websocket, clientId, joinedQuiz]);
 
-    const onRegistrationFilled = (name) => {
-        setPlayerName(name);
-        setRegistrationFilled(true);
-    }
     const onRegistrationDone = (clientId, quizId) => {
         setClientId(clientId);
         setQuizId(quizId);
-    }
-    const onRegistrationCancelled = () => {
-        setRegistrationFilled(false);
     }
     const onSubmittedQuestion = () => {
         setSubmittedQuestion(true);
@@ -91,12 +98,8 @@ function App() {
                              onDone={onSubmittedQuestion} />))
         : ( clientId
             ? <p>Registered for quiz</p>
-            : ( registrationFilled
-                ? (websocket && <QuizRegistration websocket={websocket} playerName={playerName}
-                                onDone={onRegistrationDone}
-                                onCancel={onRegistrationCancelled}/>)
-                : <RegistrationForm playerName={playerName}
-                  onDone={onRegistrationFilled} />))}
+            : <QuizRegistration getWebsocket={getWebsocket}
+                                onDone={onRegistrationDone} />)}
         { errorMessage
         && <><p>Error: {errorMessage}</p><Button onClick={() => setErrorMessage('')}>Retry</Button></> }
     </div>;
