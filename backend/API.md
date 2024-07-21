@@ -34,12 +34,14 @@ Clients can only interact with the quiz that they are connected to.
 
 ## Question pool
 
-Each player can set a poll question before the quiz starts.
+Each player add a question to the pool before the quiz starts.
 ```
 { "action": "set-pool-question", "question": "What is not a prime number?", "choices": ["2", "17", "29", "49"], "answer": 4 }
 ```
+Actually, they can update/change this question at any time (also during the quiz).
+This way, players could potentially adapt their question in response to other questions.
 
-The host can view the pool questions (to use it as source for the quiz quztions):
+The host can view the pool questions (to use it as source for the quiz questions):
 ```
 { "action": "get-pool-questions" }
 ```
