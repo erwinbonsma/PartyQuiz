@@ -81,7 +81,7 @@ export function PlayQuiz({ websocket, quizId }) {
                 onClick={sendAnswer}
                 disabled={!answer || !canAnswer}
                 variant="primary"
-                size="lg">Submit</Button>
+                size="lg">Submit Answer</Button>
         </Stack>
         : <p>Waiting for question</p>
     }</>;

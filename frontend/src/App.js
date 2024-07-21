@@ -8,6 +8,7 @@ import { handleResponse } from './utils';
 import { PlayQuiz } from './Components/PlayQuiz';
 import { QuizRegistration } from './Components/QuizRegisteration';
 import { RegistrationForm } from './Components/RegistrationForm';
+import { SubmitQuestion } from './Components/SubmitQuestion';
 
 function App() {
     const [registrationFilled, setRegistrationFilled] = useState(false);
@@ -15,6 +16,7 @@ function App() {
 	const [clientId, setClientId] = useState();
     const [quizId, setQuizId] = useState();
     const [joinedQuiz, setJoinedQuiz] = useState(false);
+    const [submittedQuestion, setSubmittedQuestion] = useState(false);
 	const [errorMessage, setErrorMessage] = useState();
 	const [websocket, setWebsocket] = useState();
 
@@ -77,10 +79,16 @@ function App() {
     const onRegistrationCancelled = () => {
         setRegistrationFilled(false);
     }
+    const onSubmittedQuestion = () => {
+        setSubmittedQuestion(true);
+    }
 
     return <div className="App">
         { joinedQuiz
-        ? (websocket && <PlayQuiz websocket={websocket} quizId={quizId} />)
+        ? ( submittedQuestion
+            ? (websocket && <PlayQuiz websocket={websocket} quizId={quizId} />)
+            : (websocket && <SubmitQuestion websocket={websocket} quizId={quizId}
+                             onDone={onSubmittedQuestion} />))
         : ( clientId
             ? <p>Registered for quiz</p>
             : ( registrationFilled
