@@ -285,7 +285,7 @@ class QuizMessageHandler(BaseMessageHandler):
 
         if not self.quiz.store_answer(question_id, client_id, answer):
             raise HandlerException(
-                "Can only answer question once", ErrorCode.NotAllowed)
+                "Can only answer question once", ErrorCode.AlreadyAnswered)
 
         # Notify host that (another) answer has been received.
         # Note: not including total number of answers received for current question, as this is

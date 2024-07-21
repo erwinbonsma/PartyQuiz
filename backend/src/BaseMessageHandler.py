@@ -15,6 +15,7 @@ class ErrorCode(IntEnum):
     UnknownCommand = 5
     MissingField = 6
     NotConnected = 7
+    AlreadyAnswered = 8
     InternalServerError = 255
 
 

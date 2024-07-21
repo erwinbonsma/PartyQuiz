@@ -29,15 +29,27 @@ export function PlayQuiz({ websocket, quizId }) {
     useEffect(() => {
 		websocket.addEventListener('message', handleMessage);
 
+        // Check if a question is already open
+        websocket.send(JSON.stringify({
+			action: "get-question",
+            quiz_id: quizId,
+        }));
+
 		return function cleanup() {
             websocket.removeEventListener('message', handleMessage);
 		}
 	}, [websocket]);
 
     const sendAnswer = () => {
-        handleResponse(websocket, () => {
-            setDidAnswer(true);
-        });
+        handleResponse(websocket,
+            () => { setDidAnswer(true); },
+            (msg) => {
+                if (msg.error_code === 8) {
+                    // Already answered
+                    setDidAnswer(true);
+                }
+            }
+        );
 
         websocket.send(JSON.stringify({
 			action: "answer",
@@ -54,6 +66,8 @@ export function PlayQuiz({ websocket, quizId }) {
         { name: 'D.', value: 4 },
     ];
 
+    const canAnswer = isQuestionOpen && !didAnswer;
+
     return (
         questionId
         ? <Stack gap={3} className="col-md-5 mx-auto">
@@ -63,12 +77,13 @@ export function PlayQuiz({ websocket, quizId }) {
                 type="radio"
                 variant="secondary"
                 size="lg"
+                disabled={!canAnswer}
                 checked={answer === choice.value}
                 onChange={() => setAnswer(choice.value)}
                 >{choice.name}</ToggleButton>)) }
             <Button
                 onClick={sendAnswer}
-                disabled={!answer || !isQuestionOpen || didAnswer}
+                disabled={!answer || !canAnswer}
                 variant="primary"
                 size="lg">Submit</Button>
         </Stack>
