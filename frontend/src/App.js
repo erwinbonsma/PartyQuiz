@@ -58,13 +58,13 @@ function App() {
             createWebsocket();
         }
 
-		return function cleanup() {
-			if (websocket) {
-				console.log("Closing websocket");
-				setWebsocket(undefined);
-				websocket.close();
-			}
-		}
+        if (websocket) {
+            return function cleanup() {
+                console.log("Closing websocket");
+                setWebsocket(undefined);
+                websocket.close();
+            }
+        }
 	}, [websocket, quizId, errorMessage]);
 
     // Auto-join quiz (or re-join after disconnect)

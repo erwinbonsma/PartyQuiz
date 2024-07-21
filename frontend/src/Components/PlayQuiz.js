@@ -29,7 +29,10 @@ export function PlayQuiz({ websocket, quizId }) {
     };
 
     useEffect(() => {
-		websocket.addEventListener('message', handleMessage);
+        // Note: invoked twice in development (for stress testing)
+        // This results in an extra message, but that's fine.
+
+        websocket.addEventListener('message', handleMessage);
 
         // Check if a question is already open
         websocket.send(JSON.stringify({
