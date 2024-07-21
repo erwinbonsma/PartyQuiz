@@ -17,7 +17,7 @@ export function QuizRegistration({ getWebsocket, playerName, quizId, onDone }) {
 	const handleRegistration = (event) => {
 		event.preventDefault();
 
-        const ws = getWebsocket(register);
+        getWebsocket(register);
     };
 
     const register = (websocket) => {
@@ -38,6 +38,7 @@ export function QuizRegistration({ getWebsocket, playerName, quizId, onDone }) {
 
     return (
         <form onSubmit={handleRegistration} >
+            {/* TODO: convert to form (similar to SubmitQuestion) */}
             <Container>
                 <Row><Col><h1>Registration</h1></Col></Row>
                 <Row><Col xs={12} sm={4}><p>Name:</p></Col>

@@ -80,7 +80,7 @@ function App() {
             quiz_id: quizId,
             client_id: clientId
 		}));
-    }, [websocket, clientId, joinedQuiz]);
+    }, [websocket, clientId, joinedQuiz, quizId]);
 
     const onRegistrationDone = (clientId, quizId) => {
         setClientId(clientId);

@@ -43,7 +43,7 @@ export function PlayQuiz({ websocket, quizId }) {
 		return function cleanup() {
             websocket.removeEventListener('message', handleMessage);
 		}
-	}, [websocket]);
+	}, [websocket, quizId]);
 
     const sendAnswer = () => {
         handleResponse(websocket,

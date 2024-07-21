@@ -76,6 +76,7 @@ export function SubmitQuestion({ websocket, quizId, onDone }) {
             <br/>
             <Button type="submit">Submit Question</Button>
         </Form>
+        { /* TODO: Improve handling/display of errors from server */ }
         { errorMessage
         && <p>Error in question: {errorMessage}</p> }
     </>;
