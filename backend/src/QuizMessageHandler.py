@@ -196,8 +196,8 @@ class QuizMessageHandler(BaseMessageHandler):
                 raise HandlerException(
                     "Failed to get default quiz",
                     ErrorCode.InternalServerError)
-            self.fetch_quiz(quiz_id)
 
+        self.fetch_quiz(quiz_id)
         if len(self.quiz.players) >= Config.MAX_PLAYERS_PER_QUIZ:
             raise HandlerException(
                 f"Player limit reached for Quiz {quiz_id}",
