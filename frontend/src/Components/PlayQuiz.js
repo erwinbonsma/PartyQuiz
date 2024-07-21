@@ -9,6 +9,7 @@ export function PlayQuiz({ websocket, quizId }) {
     const [questionId, setQuestionId] = useState();
     const [isQuestionOpen, setQuestionIsOpen] = useState(false);
     const [answer, setAnswer] = useState();
+    const [choices, setChoices] = useState();
     const [didAnswer, setDidAnswer] = useState(false);
 
     const handleMessage = (event) => {
@@ -17,6 +18,7 @@ export function PlayQuiz({ websocket, quizId }) {
 
         if (msg.type === "question-opened") {
             setQuestionId(msg.question_id);
+            setChoices(msg.question.choices);
             setQuestionIsOpen(true);
             setAnswer(undefined);
             setDidAnswer(false);
@@ -59,17 +61,11 @@ export function PlayQuiz({ websocket, quizId }) {
 		}));
     };
 
-    const choices = [
-        { name: 'A.', value: 1 },
-        { name: 'B.', value: 2 },
-        { name: 'C.', value: 3 },
-        { name: 'D.', value: 4 },
-    ];
-
     const canAnswer = isQuestionOpen && !didAnswer;
 
-    return (
-        questionId
+    return <>
+        <h1>Question {questionId}</h1>
+        { questionId
         ? <Stack gap={3} className="col-md-5 mx-auto">
             { choices.map((choice, idx) => (<ToggleButton
                 key={idx}
@@ -78,9 +74,9 @@ export function PlayQuiz({ websocket, quizId }) {
                 variant="secondary"
                 size="lg"
                 disabled={!canAnswer}
-                checked={answer === choice.value}
-                onChange={() => setAnswer(choice.value)}
-                >{choice.name}</ToggleButton>)) }
+                checked={answer === idx + 1}
+                onChange={() => setAnswer(idx + 1)}
+                >{`${String.fromCharCode(65 + idx)}. ${choice}`}</ToggleButton>)) }
             <Button
                 onClick={sendAnswer}
                 disabled={!answer || !canAnswer}
@@ -88,5 +84,5 @@ export function PlayQuiz({ websocket, quizId }) {
                 size="lg">Submit</Button>
         </Stack>
         : <p>Waiting for question</p>
-    );
+    }</>;
 }
