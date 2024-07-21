@@ -6,17 +6,21 @@ from BaseMessageHandler import (BaseMessageHandler, ErrorCode, HandlerException,
 from Common import Config, ClientRole, Question, create_id
 
 
-def check_int_value(name: str, value: int, value_range: tuple[int, int]):
+def check_int_value(name: str, value: int | str, value_range: tuple[int, int]):
+    try:
+        value = int(value)
+    except ValueError:
+        raise HandlerException(
+            f"{name} is not an integer)", ErrorCode.InvalidValue)
+
     if value < value_range[0]:
         raise HandlerException(
-            f"{name} is too short ({value} < {value_range[0]})",
-            ErrorCode.InvalidValue
-        )
+            f"{name} is too small ({value} < {value_range[0]})",
+            ErrorCode.InvalidValue)
     if value > value_range[1]:
         raise HandlerException(
-            f"{name} is too long ({value} > {value_range[1]})",
-            ErrorCode.InvalidValue
-        )
+            f"{name} is too big ({value} > {value_range[1]})",
+            ErrorCode.InvalidValue)
 
 
 def check_string_value(name: str, value: str, len_range: tuple[int, int]):
