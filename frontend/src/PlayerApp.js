@@ -1,4 +1,3 @@
-import './App.css';
 import { useState, useEffect } from 'react';
 import Button from 'react-bootstrap/Button';
 
@@ -9,7 +8,7 @@ import { PlayQuiz } from './Components/PlayQuiz';
 import { QuizRegistration } from './Components/QuizRegistration';
 import { SubmitQuestion } from './Components/SubmitQuestion';
 
-function App() {
+export function PlayerApp() {
 	const [clientId, setClientId] = useState();
     const [quizId, setQuizId] = useState();
     const [joinedQuiz, setJoinedQuiz] = useState(false);
@@ -90,7 +89,7 @@ function App() {
         setSubmittedQuestion(true);
     }
 
-    return <div className="App">
+    return <div className="PlayerApp">
         { joinedQuiz
         ? ( submittedQuestion
             ? (websocket && <PlayQuiz websocket={websocket} quizId={quizId} />)
@@ -104,5 +103,3 @@ function App() {
         && <><p>Error: {errorMessage}</p><Button onClick={() => setErrorMessage('')}>Retry</Button></> }
     </div>;
 }
-
-export default App;
