@@ -21,7 +21,7 @@ export function PlayerApp() {
 		const socket = new WebSocket(config.SERVICE_ENDPOINT);
 
 		// Connection opened
-		socket.addEventListener('open', function (event) {
+		socket.addEventListener('open', () => {
 			console.log("Opened websocket");
             onOpen?.(socket);
 			setWebsocket(socket);

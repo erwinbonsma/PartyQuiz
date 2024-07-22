@@ -2,8 +2,9 @@ import './App.css';
 import { useState, useEffect } from 'react';
 
 import Button from 'react-bootstrap/Button';
-import Stack from 'react-bootstrap/Stack';
+import ButtonToolbar from 'react-bootstrap/ButtonToolbar';
 
+import { HostApp } from './HostApp.js'
 import { PlayerApp } from './PlayerApp.js'
 
 export function AppSelector() {
@@ -21,11 +22,11 @@ export function AppSelector() {
         { (appMode === "player"
         ? <PlayerApp/>
         : (appMode === "host"
-            ? <p>HostApp</p>
-            : <Stack gap={3}>
-                <Button onClick={() => setAppMode("player")}>Player App</Button>
-                <Button onClick={() => setAppMode("host")}>Host App</Button>
-            </Stack>))
+            ? <HostApp/>
+            : <ButtonToolbar>
+                <Button className="mx-2" onClick={() => setAppMode("player")}>Player App</Button>
+                <Button className="mx-2" onClick={() => setAppMode("host")}>Host App</Button>
+            </ButtonToolbar>))
         }
     </div>);
 }
