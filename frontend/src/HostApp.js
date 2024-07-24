@@ -6,6 +6,8 @@ import ButtonToolbar from 'react-bootstrap/ButtonToolbar';
 import config from './utils/config';
 import { handleResponse } from './utils';
 
+import { HostQuiz } from './Components/HostQuiz';
+
 export function HostApp() {
     const [hostId, setHostId] = useState();
     const [quizId, setQuizId] = useState();
@@ -84,7 +86,7 @@ export function HostApp() {
         });
 
         websocket.send(JSON.stringify({
-			action: "connect",
+            action: "connect",
             quiz_id: quizId,
             client_id: hostId,
 		}));
@@ -92,7 +94,7 @@ export function HostApp() {
 
     return (<div className="HostApp">
         { joinedQuiz
-        ? <p>Hosting quiz</p>
+        ? <HostQuiz websocket={websocket} quizId={quizId} />
         : <ButtonToolbar>
             <Button className="mx-2" onClick={createQuiz}>Create Quiz</Button>
             <Button className="mx-2" onClick={hostQuiz} disabled={!quizId}>Host Quiz</Button>
