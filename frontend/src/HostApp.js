@@ -28,6 +28,7 @@ export function HostApp() {
             if (socket) {
                 console.info("Disconnected from server");
                 setWebsocket(undefined);
+                setJoinedQuiz(false);
                 // Clear (to avoid trigger by clean-up after error)
                 socket = undefined;
             }
@@ -78,7 +79,15 @@ export function HostApp() {
     };
 
     const hostQuiz = () => {
+        handleResponse(websocket, () => {
+            setJoinedQuiz(true);
+        });
 
+        websocket.send(JSON.stringify({
+			action: "connect",
+            quiz_id: quizId,
+            client_id: hostId,
+		}));
     };
 
     return (<div className="HostApp">
@@ -86,7 +95,7 @@ export function HostApp() {
         ? <p>Hosting quiz</p>
         : <ButtonToolbar>
             <Button className="mx-2" onClick={createQuiz}>Create Quiz</Button>
-            <Button className="mx-2" onClick={hostQuiz}>Host Quiz</Button>
+            <Button className="mx-2" onClick={hostQuiz} disabled={!quizId}>Host Quiz</Button>
         </ButtonToolbar>}
         { errorMessage
         && <><p>Error: {errorMessage}</p><Button onClick={() => setErrorMessage('')}>Retry</Button></> }
