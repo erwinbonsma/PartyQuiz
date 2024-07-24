@@ -27,6 +27,30 @@ The host can check which players have registered and who are currently connected
 { "action": "get-players" }
 ```
 
+The host can request the status of the quiz:
+```
+{ "action": "get-status" }
+```
+
+The host then gets the following response:
+```
+{
+    "type": "status",
+    "host_present": true,
+    "num_players": 7,
+    "num_players_present": 5,
+    "question_pool_size": 3,
+    "question_id": 0,
+    "is_question_open": false,
+}
+```
+
+Once connected, the host will receive status updates when:
+- A player registers
+- A player connects to the quiz
+- A player disconnected from the quiz
+- A question is added to the pool, or a question is updated
+
 Note: Once connected, clients can provide the `quiz_id` in their requests.
 It is recommended that web clients do so, to avoid an extra database look-up.
 It is, however, not needed nor does it grant extra powers.
