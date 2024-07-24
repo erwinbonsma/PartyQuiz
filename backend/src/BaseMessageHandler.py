@@ -60,16 +60,10 @@ class BaseHandler:
 
 
 class BaseMessageHandler(BaseHandler):
-    async def send_message(self, message, dest_client=None):
-        if dest_client:
-            connection = [conn for conn, name in self.clients.items() if name == dest_client]
-            if len(connection) == 0:
-                self.logger.warn(f"No connection found for client {dest_client}")
-                return
-            destination = connection[0]
-        else:
-            destination = self.connection
-        return await self.comms.send(destination, message)
+    async def send_message(self, message, connection=None):
+        if not connection:
+            connection = self.connection
+        return await self.comms.send(connection, message)
 
     async def _handle_message(self, message):
         pass

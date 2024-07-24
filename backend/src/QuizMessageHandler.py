@@ -115,6 +115,18 @@ class QuizMessageHandler(BaseMessageHandler):
             "is_question_open": self.quiz.is_question_open,
         }), skip_players=True)
 
+    async def notify_host(self, message_type, fields):
+        host_ws = [ws for ws, client_id in self.quiz.clients.items()
+                   if client_id == self.quiz.host_id]
+
+        if len(host_ws) == 0:
+            return
+
+        await self.send_message(json.dumps({
+            "type": message_type,
+            **fields
+        }), host_ws[0])
+
     async def create_quiz(self, name, make_default=False):
         host_id = create_id()
 
@@ -155,7 +167,8 @@ class QuizMessageHandler(BaseMessageHandler):
 
         await self.send_message(ok_message())
 
-        await self.send_status_message()
+        if client_id != self.quiz.host_id:
+            await self.notify_host("player-connected", {"client_id": client_id})
 
     async def disconnect(self):
         # Retry removal. It can fail if two (or more clients) disconnect at the same time. In that
@@ -179,7 +192,7 @@ class QuizMessageHandler(BaseMessageHandler):
 
         self.db.clear_quiz_for_connection(self.connection)
 
-        await self.send_status_message()
+        await self.notify_host("player-disconnected", {"client_id": client_id})
 
     async def register(self, player_name, quiz_id=None):
         """
@@ -211,7 +224,10 @@ class QuizMessageHandler(BaseMessageHandler):
             "client_id": client_id  # Return to enable client to rejoin
         }))
 
-        await self.send_status_message()
+        await self.notify_host("player-registered", {
+            "client_id": client_id,
+            "player_name": player_name
+        })
 
     async def get_players(self):
         self.check_role(ClientRole.Host)
@@ -245,7 +261,11 @@ class QuizMessageHandler(BaseMessageHandler):
                 "Failed to set question", ErrorCode.InternalServerError)
 
         await self.send_message(ok_message())
-        await self.send_status_message()
+
+        await self.notify_host("question-updated", {
+            "client_id": client_id,
+            "question": question
+        })
 
     async def get_pool_questions(self):
         self.check_role(ClientRole.Host)
