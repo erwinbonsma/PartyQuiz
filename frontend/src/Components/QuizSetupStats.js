@@ -5,27 +5,38 @@ import Col from 'react-bootstrap/Col';
 import Row from 'react-bootstrap/Row';
 
 export function QuizSetupStats({ websocket, quizId }) {
-    const [numPlayers, setNumPlayers] = useState(0);
-    const [numPlayersPresent, setNumPlayersPresent] = useState(0);
-    const [numPoolQuestions, setNumPoolQuestions] = useState(0);
+    const [players, setPlayers] = useState({});
+    const [playersPresent, setPlayersPresent] = useState({});
+    const [poolQuestions, setPoolQuestions] = useState({});
 
+    console.info("players: ", players);
     useEffect(() => {
         const messageHandler = (event) => {
             const msg = JSON.parse(event.data);
 
-            if (msg.type === "status") {
-                setNumPlayers(msg.num_players);
-                setNumPlayersPresent(msg.num_players_present);
-                setNumPoolQuestions(msg.question_pool_size);
+            console.info(msg);
+            if (msg.type === "players") {
+                setPlayers(
+                    Object.fromEntries(Object.entries(msg.players).map((
+                        [k, v]) => [k, v.name])))
+            }
+            if (msg.type === "player-registered") {
+                setPlayers(
+                    players => ({ ...players, [msg.client_id]: msg.player_name })
+                );
             }
         };
 
         websocket.addEventListener('message', messageHandler);
 
         websocket.send(JSON.stringify({
-			action: "get-status",
+			action: "get-players",
             quiz_id: quizId,
         }));
+        // websocket.send(JSON.stringify({
+		// 	action: "get-pool-questions",
+        //     quiz_id: quizId,
+        // }));
 
         return function cleanup() {
             websocket.removeEventListener('message', messageHandler);
@@ -35,9 +46,12 @@ export function QuizSetupStats({ websocket, quizId }) {
     return (<div className="QuizSetupStats">
         <Container>
             <Row><Col lg={4}>Players</Col>
-                 <Col lg={1}>{numPlayers}/{numPlayersPresent}</Col>
+                 <Col lg={1}>{Object.keys(players).length}</Col>
                  <Col lg={4}>Questions</Col>
-                 <Col lg={1}>{numPoolQuestions}</Col></Row>
+                 <Col lg={1}>{Object.keys(poolQuestions).length}</Col></Row>
+            <Row>{ Object.entries(players).map(([k, v]) =>
+                <Col lg={3} key={k}>{v}</Col>
+            )}</Row>
         </Container>
     </div>);
 }
