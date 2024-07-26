@@ -1,5 +1,6 @@
 .App {
   text-align: center;
+  background-color: #ddffdd;
 }
 
 .App-header {
@@ -13,7 +14,14 @@
   color: white;
 }
 
-.Player-name {
+p {
+    text-align: left;
+}
+
+.PlayerBadge {
+    background-color: #bbeebb;
+}
+.PlayerName {
     font-size: 22px;
 }
 

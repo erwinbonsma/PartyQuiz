@@ -1,5 +1,7 @@
 import { ReactComponent as AiIcon } from './icons/ai.svg';
 import { ReactComponent as BoardGamesIcon } from './icons/meeple.svg';
+import { ReactComponent as CheckmarkIcon } from './icons/checkmark.svg';
+import { ReactComponent as ErrorIcon } from './icons/error.svg';
 import { ReactComponent as FamilyIcon } from './icons/family.svg';
 import { ReactComponent as GoIcon } from './icons/goban.svg';
 import { ReactComponent as HighSchoolIcon } from './icons/high-school.svg';
@@ -11,7 +13,7 @@ import Container from 'react-bootstrap/esm/Container';
 import Col from 'react-bootstrap/Col';
 import Row from 'react-bootstrap/Row';
 
-export function PlayerBadge({ playerName, avatar, isPresent }) {
+export function PlayerBadge({ playerName, avatar, isPresent, hasQuestion }) {
     const icons = {
         "ai": AiIcon,
         "board games": BoardGamesIcon,
@@ -25,9 +27,14 @@ export function PlayerBadge({ playerName, avatar, isPresent }) {
     const Icon = icons[avatar];
 
     return <Container className="PlayerBadge">
-        <Row className="align-items-center">
-            <Col lg={8} className="Player-name">{playerName}</Col>
+        <Row className="align-items-center px-2 py-1">
             <Col lg={2}>{Icon && <Icon height={32} width={32} />}</Col>
+            <Col lg={8} className="PlayerName">{playerName}</Col>
+            <Col lg={2}>
+                {isPresent
+                ? (hasQuestion && <CheckmarkIcon height={24} width={24} />)
+                : <ErrorIcon height={24} width={24} />}
+            </Col>
         </Row>
     </Container>
 }

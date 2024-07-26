@@ -48,13 +48,16 @@ export function QuizSetupStats({ websocket, quizId }) {
     }, []);
 
     return (<div className="QuizSetupStats">
+        <h1>Player Lobby</h1>
+        <h4>{Object.keys(players).length} players, {Object.keys(poolQuestions).length} questions</h4>
         <Container>
-            <Row><Col lg={4}>Players</Col>
-                 <Col lg={1}>{Object.keys(players).length}</Col>
-                 <Col lg={4}>Questions</Col>
-                 <Col lg={1}>{Object.keys(poolQuestions).length}</Col></Row>
             <Row>{ Object.entries(players).map(([k, v]) =>
-                <Col lg={3} key={k}><PlayerBadge playerName={v.name} avatar={v.avatar}/></Col>
+                <Col lg={3} key={k} className="my-2"><PlayerBadge
+                    playerName={v.name}
+                    avatar={v.avatar}
+                    isPresent={playersPresent[k]}
+                    hasQuestion={poolQuestions[k]}/>
+                </Col>
             )}</Row>
         </Container>
     </div>);
