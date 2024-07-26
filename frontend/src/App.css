@@ -13,6 +13,10 @@
   color: white;
 }
 
+.Player-name {
+    font-size: 22px;
+}
+
 .App-link {
   color: #61dafb;
 }

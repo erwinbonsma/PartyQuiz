@@ -4,6 +4,8 @@ import Container from 'react-bootstrap/esm/Container';
 import Col from 'react-bootstrap/Col';
 import Row from 'react-bootstrap/Row';
 
+import { PlayerBadge } from './PlayerBadge';
+
 export function QuizSetupStats({ websocket, quizId }) {
     const [players, setPlayers] = useState({});
     const [playersPresent, setPlayersPresent] = useState({});
@@ -22,7 +24,9 @@ export function QuizSetupStats({ websocket, quizId }) {
             }
             if (msg.type === "player-registered") {
                 setPlayers(
-                    players => ({ ...players, [msg.client_id]: msg.player_name })
+                    players => ({ ...players, [msg.client_id]: {
+                        name: msg.player_name, avatar: msg.avatar
+                    }})
                 );
             }
         };
@@ -50,7 +54,7 @@ export function QuizSetupStats({ websocket, quizId }) {
                  <Col lg={4}>Questions</Col>
                  <Col lg={1}>{Object.keys(poolQuestions).length}</Col></Row>
             <Row>{ Object.entries(players).map(([k, v]) =>
-                <Col lg={3} key={k}>{v}</Col>
+                <Col lg={3} key={k}><PlayerBadge playerName={v.name} avatar={v.avatar}/></Col>
             )}</Row>
         </Container>
     </div>);
