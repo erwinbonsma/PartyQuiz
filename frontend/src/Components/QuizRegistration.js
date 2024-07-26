@@ -1,26 +1,24 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { useForm } from 'react-hook-form';
 
 import Button from 'react-bootstrap/Button';
 import Col from 'react-bootstrap/Col';
-import Container from 'react-bootstrap/Container';
+import Form from 'react-bootstrap/Form';
 import Row from 'react-bootstrap/Row';
 
 import { handleResponse } from '../utils';
 
 export function QuizRegistration({ getWebsocket, playerName, quizId, onDone }) {
-    const [nameInput, setNameInput] = useState(playerName || '');
+    const {register, handleSubmit, formState: { errors }} = useForm();
+    const [formData, setFormData] = useState();
 
-	const handleInputChange = (event) => {
-		setNameInput(event.target.value);
-	};
+    const onSubmit = (data) => {
+        console.info("data", data);
+        setFormData(data);
+    }
 
-	const handleRegistration = (event) => {
-		event.preventDefault();
-
-        getWebsocket(register);
-    };
-
-    const register = (websocket) => {
+    const onRegister = useCallback((websocket) => {
+        console.info("Registering");
         handleResponse(websocket, (msg) => {
             onDone(msg.client_id, msg.quiz_id);
         });
@@ -28,24 +26,59 @@ export function QuizRegistration({ getWebsocket, playerName, quizId, onDone }) {
         websocket.send(JSON.stringify({
 			action: "register",
             quiz_id: quizId,
-            player_name: nameInput,
+            player_name: formData.name,
+            avatar: formData.avatar,
 		}));
+    }, [quizId, formData, onDone]);
+
+    useEffect(() => {
+        if (formData) {
+            getWebsocket(onRegister);
+        }
+    }, [onRegister, formData, getWebsocket]);
+
+    const avatarOptions = {
+        "family": "Family",
+        "high school": "R.S.G.",
+        "university": "7-2",
+        "ai": "Edinburgh",
+        "tennis": "Tennis",
+        "go": "Go",
+        "board games": "Board games",
     };
 
-    const isFormDataValid = () => {
-        return (nameInput.length >= 2 && nameInput.length <= 20);
-    };
-
-    return (
-        <form onSubmit={handleRegistration} >
-            {/* TODO: convert to form (similar to SubmitQuestion) */}
-            <Container>
-                <Row><Col><h1>Registration</h1></Col></Row>
-                <Row><Col xs={12} sm={4}><p>Name:</p></Col>
-                    <Col xs={12} sm={8}><input size={20} type="text" value={nameInput} onChange={handleInputChange} /></Col></Row>
-                <Row className="justify-content-md-center">
-                    <Col xs={6} sm={4}><Button type="submit" disabled={!isFormDataValid()} >Register</Button></Col></Row>
-            </Container>
-        </form>
-    );
+    return <>
+        <h1>Registration</h1>
+        <Form onSubmit={handleSubmit(onSubmit)} noValidate className="mx-2">
+            <Form.Group as={Row}>
+                <Form.Label column sm={5}>Name</Form.Label>
+                <Col sm={7}>
+                    <Form.Control type="input"
+                     isInvalid={!!errors.name}
+                     value={playerName}
+                     {...register("name", { required: true, maxLength: 12 })}/>
+                    {errors.name?.type === "required" && (
+                        <Form.Control.Feedback type="invalid">This is required</Form.Control.Feedback>
+                    )}
+                    {errors.name?.type === "maxLength" && (
+                        <Form.Control.Feedback type="invalid">Max length exceeded</Form.Control.Feedback>
+                    )}
+                </Col>
+            </Form.Group>
+            <br/>
+            <Form.Group as={Row}>
+                <Form.Label column sm={5}>Where do you know Erwin from?</Form.Label>
+                <Col sm={7}>
+                    <Form.Select defaultValue=""
+                     {...register("avatar", { required: true, minLength: 1 })}>
+                    <option disabled value="">Please select</option>
+                    { Object.entries(avatarOptions).map(([k, v]) =>
+                        <option value={k} key={k}>{v}</option>)}
+                    </Form.Select>
+                </Col>
+            </Form.Group>
+            <br/>
+            <Button type="submit">Register</Button>
+        </Form>
+    </>;
 }
