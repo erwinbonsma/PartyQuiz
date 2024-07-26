@@ -203,7 +203,8 @@ class DynamoDbQuiz:
     @functools.cache
     def players(self) -> dict[str, Player]:
         return {
-            skey[7:]: Player(name=item["Name"]["S"])
+            skey[7:]: Player(name=item["Name"]["S"],
+                             avatar=col["S"] if (col := item.get("Avatar")) else None)
             for item in self.__items
             if (skey := item["SKEY"]["S"]).startswith("Player#")
         }
@@ -243,19 +244,24 @@ class DynamoDbQuiz:
     def get_client_id(self, connection) -> str:
         return self.clients.get(connection)
 
-    def add_player(self, client_id: str, name: str) -> dict[str, Player]:
+    def add_player(self, client_id: str, name: str, avatar: Optional[str] = None
+                   ) -> dict[str, Player]:
         try:
+            item = {
+                "PKEY": {"S": f"Quiz#{self.quiz_id}"},
+                "SKEY": {"S": f"Player#{client_id}"},
+                "Name": {"S": name},
+            }
+            if avatar:
+                item["Avatar"] = {"S": avatar}
+
             self.client.put_item(
                 TableName=Config.MAIN_TABLE,
-                Item={
-                    "PKEY": {"S": f"Quiz#{self.quiz_id}"},
-                    "SKEY": {"S": f"Player#{client_id}"},
-                    "Name": {"S": name},
-                },
+                Item=item,
                 ConditionExpression="attribute_not_exists(PKEY)"
             )
 
-            self.players[client_id] = name
+            self.players[client_id] = Player(name, avatar)
 
             return self.players
         except Exception as e:

@@ -24,7 +24,7 @@ class ClientRole(IntEnum):
 @dataclass
 class Player:
     name: str
-    # TODO: Add group/avatar
+    avatar: Optional[str] = None
 
     def asdict(self):
         return asdict(self)

@@ -194,10 +194,8 @@ class QuizMessageHandler(BaseMessageHandler):
 
         await self.notify_host("player-disconnected", {"client_id": client_id})
 
-    async def register(self, player_name, quiz_id=None):
-        """
-        Register for a quiz (as a player)
-        """
+    async def register(self, player_name, avatar=None, quiz_id=None):
+        """ Register for a quiz (as a player) """
         check_string_value("name", player_name, Config.RANGE_NAME_LENGTH)
 
         if quiz_id is None:
@@ -213,7 +211,7 @@ class QuizMessageHandler(BaseMessageHandler):
                 ErrorCode.PlayerLimitReached)
 
         client_id = create_id()
-        if not self.quiz.add_player(client_id, player_name):
+        if not self.quiz.add_player(client_id, player_name, avatar):
             raise HandlerException(
                 f"Failed to add player {player_name} as {client_id}",
                 ErrorCode.InternalServerError)
@@ -226,7 +224,8 @@ class QuizMessageHandler(BaseMessageHandler):
 
         await self.notify_host("player-registered", {
             "client_id": client_id,
-            "player_name": player_name
+            "player_name": player_name,
+            "avatar": avatar
         })
 
     async def get_players(self):
@@ -387,6 +386,7 @@ class QuizMessageHandler(BaseMessageHandler):
         if cmd == "register":
             return await self.register(
                 player_name=msg["player_name"],
+                avatar=msg.get("avatar"),
                 quiz_id=msg.get("quiz_id")
             )
 
