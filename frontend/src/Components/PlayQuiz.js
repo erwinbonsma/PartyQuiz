@@ -67,9 +67,13 @@ export function PlayQuiz({ websocket, quizId }) {
     const canAnswer = isQuestionOpen && !didAnswer;
 
     return <>
-        <h1>Question {questionId}</h1>
+        <h1>{
+            questionId
+            ? <div>Question {questionId}</div>
+            : <div>Waiting for quiz to start</div>
+        }</h1>
         { questionId
-        ? <Stack gap={3} className="col-md-5 mx-auto">
+        && <Stack gap={3} className="col-md-5 mx-auto">
             { choices.map((choice, idx) => (<ToggleButton
                 key={idx}
                 id={`radio-${idx}`}
@@ -86,6 +90,5 @@ export function PlayQuiz({ websocket, quizId }) {
                 variant="primary"
                 size="lg">Submit Answer</Button>
         </Stack>
-        : <p>Waiting for question</p>
     }</>;
 }
