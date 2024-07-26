@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 
 import Button from 'react-bootstrap/Button';
@@ -10,32 +10,26 @@ import { handleResponse } from '../utils';
 
 export function QuizRegistration({ getWebsocket, playerName, quizId, onDone }) {
     const {register, handleSubmit, formState: { errors }} = useForm();
-    const [formData, setFormData] = useState();
 
     const onSubmit = (data) => {
         console.info("data", data);
-        setFormData(data);
-    }
 
-    const onRegister = useCallback((websocket) => {
-        console.info("Registering");
-        handleResponse(websocket, (msg) => {
-            onDone(msg.client_id, msg.quiz_id);
-        });
+        const onRegister = (websocket) => {
+            console.info("Registering");
+            handleResponse(websocket, (msg) => {
+                onDone(msg.client_id, msg.quiz_id);
+            });
 
-        websocket.send(JSON.stringify({
-			action: "register",
-            quiz_id: quizId,
-            player_name: formData.name,
-            avatar: formData.avatar,
-		}));
-    }, [quizId, formData, onDone]);
+            websocket.send(JSON.stringify({
+                action: "register",
+                quiz_id: quizId,
+                player_name: data.name,
+                avatar: data.avatar,
+            }));
+        };
 
-    useEffect(() => {
-        if (formData) {
-            getWebsocket(onRegister);
-        }
-    }, [onRegister, formData, getWebsocket]);
+        getWebsocket(onRegister);
+    };
 
     const avatarOptions = {
         "family": "Family",
