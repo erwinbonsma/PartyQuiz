@@ -269,8 +269,9 @@ class QuizMessageHandler(BaseMessageHandler):
     async def get_pool_questions(self):
         self.check_role(ClientRole.Host)
 
-        return await self.send_message(ok_message({
-            "pool_questions": [q.asdict(strip_answer=False) for q in self.quiz.questions_pool()]
+        return await self.send_message(json.dumps({
+            "type": "pool-questions",
+            "questions": [q.asdict(strip_answer=False) for q in self.quiz.questions_pool()]
         }))
 
     async def open_question(self, author_id, question, choices, answer):
