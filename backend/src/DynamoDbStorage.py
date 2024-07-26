@@ -182,7 +182,7 @@ class DynamoDbQuiz:
             )
 
             self.__items = response["Items"]
-            logger.info("Data for quiz %s: %s", self.quiz_id, self.__items)
+            # logger.info("Data for quiz %s: %s", self.quiz_id, self.__items)
             self.__instance_item = next(item for item in self.__items
                                         if item["SKEY"]["S"] == "Instance")
 
