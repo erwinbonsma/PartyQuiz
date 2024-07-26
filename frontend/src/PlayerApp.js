@@ -13,8 +13,10 @@ export function PlayerApp() {
     const [quizId, setQuizId] = useState();
     const [joinedQuiz, setJoinedQuiz] = useState(false);
     const [submittedQuestion, setSubmittedQuestion] = useState(false);
+    const [reviseQuestion, setReviseQuestion] = useState(false);
 	const [errorMessage, setErrorMessage] = useState();
 	const [websocket, setWebsocket] = useState();
+    const [question, setQuestion] = useState();
 
     const createWebsocket = (onOpen) => {
         // Create WebSocket connection.
@@ -85,20 +87,28 @@ export function PlayerApp() {
         setClientId(clientId);
         setQuizId(quizId);
     }
-    const onSubmittedQuestion = () => {
+    const onSubmittedQuestion = (question) => {
+        setQuestion(question);
+
         setSubmittedQuestion(true);
+        setReviseQuestion(false);
     }
 
     return <div className="PlayerApp">
         { joinedQuiz
-        ? ( submittedQuestion
-            ? (websocket && <PlayQuiz websocket={websocket} quizId={quizId} />)
+        ? ( (submittedQuestion && !reviseQuestion)
+            ? (websocket && <>
+                <PlayQuiz websocket={websocket} quizId={quizId} />
+                <Button onClick={() => setReviseQuestion(true)}>Revise question</Button>
+            </>)
             : (websocket && <SubmitQuestion websocket={websocket} quizId={quizId}
-                             onDone={onSubmittedQuestion} />))
+                             question={question}
+                             onDone={onSubmittedQuestion}
+                             enableCancel={reviseQuestion} />))
         : ( clientId
             ? <p>Registered for quiz</p>
             : <QuizRegistration getWebsocket={getWebsocket}
-                                onDone={onRegistrationDone} />)}
+               onDone={onRegistrationDone} />)}
         { errorMessage
         && <><p>Error: {errorMessage}</p><Button onClick={() => setErrorMessage('')}>Retry</Button></> }
     </div>;

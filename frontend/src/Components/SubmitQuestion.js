@@ -8,35 +8,40 @@ import Row from 'react-bootstrap/Row';
 import config from '../utils/config';
 import { handleResponse } from '../utils';
 
-export function SubmitQuestion({ websocket, quizId, onDone }) {
+export function SubmitQuestion({ websocket, quizId, question, enableCancel, onDone }) {
     const {register, handleSubmit, formState: { errors }} = useForm();
 
     const choices = Array(config.NUM_CHOICES).fill(0).map((_, idx) => idx + 1);
 
-    console.info("errors", errors);
-
     const onSubmit = (data) => {
         console.info(data);
 
-        handleResponse(websocket, onDone);
+        const question = {
+            question: data.question,
+            // TODO: Get dynamically
+            choices: [data.choice_1, data.choice_2, data.choice_3, data.choice_4],
+            answer: parseInt(data.answer),
+        };
+
+        handleResponse(websocket, () => {
+            onDone({ ...question });
+        });
 
         websocket.send(JSON.stringify({
             action: "set-pool-question",
             quiz_id: quizId,
-            question: data.question,
-            // TODO: Get dynamically
-            choices: [data.choice_1, data.choice_2, data.choice_3, data.choice_4],
-            answer: parseInt(data.answer)
+            ...question
         }));
     };
 
     return <>
         <h1>Your Question</h1>
         <Form onSubmit={handleSubmit(onSubmit)} noValidate className="mx-2">
-            <Form.Group as={Row}>
+            <Form.Group as={Row} className="mb-3">
                 <Form.Label column sm={3} lg={2}>Question</Form.Label>
                 <Col sm={9} lg={10}>
                     <Form.Control as="textarea" rows={3}
+                     defaultValue={question?.question}
                      isInvalid={!!errors.question}
                      {...register("question", { required: true,
                                                 minLength: config.RANGE_QUESTION_LENGTH[0],
@@ -52,7 +57,6 @@ export function SubmitQuestion({ websocket, quizId, onDone }) {
                     )}
                 </Col>
             </Form.Group>
-            <br/>
             { choices.map((choice, _) => {
                 const fieldName = `choice_${choice}`;
 
@@ -61,6 +65,7 @@ export function SubmitQuestion({ websocket, quizId, onDone }) {
                         <Form.Label column sm={3} lg={2}>Answer {choice}</Form.Label>
                         <Col sm={9} lg={10}>
                             <Form.Control type="input"
+                            defaultValue={question?.choices[choice - 1]}
                             isInvalid={!!errors[fieldName]}
                             {...register(fieldName, { required: true,
                                                                 minLength: config.RANGE_CHOICE_LENGTH[0],
@@ -82,7 +87,7 @@ export function SubmitQuestion({ websocket, quizId, onDone }) {
                 <Form.Label column sm={3} lg={2}>Solution</Form.Label>
                 <Col sm={9} lg={10}>
                     <Form.Select
-                     defaultValue=""
+                     defaultValue={question?.answer || ""}
                      isInvalid={!!errors.answer}
                      {...register("answer", { required: true, minLength: 1 })}>
                     <option disabled value="">Please select</option>
@@ -92,6 +97,7 @@ export function SubmitQuestion({ websocket, quizId, onDone }) {
                 </Col>
             </Form.Group>
             <Button type="submit">Submit Question</Button>
+            { enableCancel && <Button onClick={() => onDone(question)}>Cancel</Button> }
         </Form>
     </>;
 }
