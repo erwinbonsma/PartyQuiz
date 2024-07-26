@@ -2,13 +2,10 @@
 
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
 <!-- Uploaded to: SVG Repo, www.svgrepo.com, Generator: SVG Repo Mixer Tools -->
-<svg height="800px" width="800px" version="1.1" id="_x32_" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
-	 viewBox="0 0 512 512"  xml:space="preserve">
-<style type="text/css">
-	.st0{fill:#000000;}
-</style>
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+	 viewBox="0 0 512 512" xml:space="preserve">
 <g>
-	<path class="st0" d="M468.419,113.18c-7.646-11.517-16.52-22.553-26.337-33.024c-0.975-1.046-1.936-2.014-2.91-2.902
+	<path d="M468.419,113.18c-7.646-11.517-16.52-22.553-26.337-33.024c-0.975-1.046-1.936-2.014-2.91-2.902
 		c-49.937-51.392-116.629-77.25-183.164-77.25c-24.418,0-48.82,3.462-72.498,10.47c-20.468,5.962-40.45,14.663-59.22,26.023
 		c-15.544,9.259-30.364,20.46-44.131,33.424C26.904,120.189,0,188.171,0,256.082c0,46.153,12.413,92.471,37.539,133.314
 		c6.451,10.714,13.861,21.027,22.152,30.852c3.225,3.95,6.687,7.812,10.226,11.596c50.346,53.248,118.25,80.152,186.168,80.152
