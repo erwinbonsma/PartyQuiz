@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useForm } from 'react-hook-form';
 
 import Button from 'react-bootstrap/Button';
 import Col from 'react-bootstrap/Col';
@@ -9,75 +9,89 @@ import config from '../utils/config';
 import { handleResponse } from '../utils';
 
 export function SubmitQuestion({ websocket, quizId, onDone }) {
-    const [validated, setValidated] = useState(false);
-	const [errorMessage, setErrorMessage] = useState();
+    const {register, handleSubmit, formState: { errors }} = useForm();
 
     const choices = Array(config.NUM_CHOICES).fill(0).map((_, idx) => idx + 1);
 
-    const handleSubmit = (event) => {
-        const form = event.currentTarget;
-        event.preventDefault();
-        event.stopPropagation();
+    console.info("errors", errors);
 
-        if (form.checkValidity()) {
-            setErrorMessage(undefined);
+    const onSubmit = (data) => {
+        console.info(data);
 
-            handleResponse(websocket,
-                () => { onDone(); },
-                (msg) => { setErrorMessage(msg.details); }
-            );
+        handleResponse(websocket, onDone);
 
-            websocket.send(JSON.stringify({
-                action: "set-pool-question",
-                quiz_id: quizId,
-                question: form.question.value,
-                // TODO: Get dynamically
-                choices: [form.choice_1.value, form.choice_2.value, form.choice_3.value, form.choice_4.value],
-                answer: parseInt(form.answer.value)
-            }));
-        }
-
-        setValidated(true);
+        websocket.send(JSON.stringify({
+            action: "set-pool-question",
+            quiz_id: quizId,
+            question: data.question,
+            // TODO: Get dynamically
+            choices: [data.choice_1, data.choice_2, data.choice_3, data.choice_4],
+            answer: parseInt(data.answer)
+        }));
     };
 
     return <>
         <h1>Your Question</h1>
-        <Form onSubmit={handleSubmit} noValidate validated={validated}>
+        <Form onSubmit={handleSubmit(onSubmit)} noValidate className="mx-2">
             <Form.Group as={Row}>
-                <Col sm={0} lg={2} xl={3} />
-                <Form.Label column sm={2} xl={1}>Question</Form.Label>
-                <Col sm={9} lg={6} xl={5}>
-                    <Form.Control as="textarea" rows={3} required name="question" />
-                    <Form.Control.Feedback type="invalid">Question must be non-empty</Form.Control.Feedback>
+                <Form.Label column sm={3} lg={2}>Question</Form.Label>
+                <Col sm={9} lg={10}>
+                    <Form.Control as="textarea" rows={3}
+                     isInvalid={!!errors.question}
+                     {...register("question", { required: true,
+                                                minLength: config.RANGE_QUESTION_LENGTH[0],
+                                                maxLength: config.RANGE_QUESTION_LENGTH[1] })}/>
+                    {errors.question?.type === "required" && (
+                        <Form.Control.Feedback type="invalid">This is required</Form.Control.Feedback>
+                    )}
+                    {errors.question?.type === "minLength" && (
+                        <Form.Control.Feedback type="invalid">The question is too short</Form.Control.Feedback>
+                    )}
+                    {errors.question?.type === "maxLength" && (
+                        <Form.Control.Feedback type="invalid">The question is too long</Form.Control.Feedback>
+                    )}
                 </Col>
             </Form.Group>
             <br/>
-            { choices.map((choice, _) => <div key={choice}>
-                <Form.Group as={Row}>
-                    <Col sm={0} lg={2} xl={3} />
-                    <Form.Label column sm={2} xl={1}>Answer {choice}</Form.Label>
-                    <Col sm={9} lg={6} xl={5}>
-                        <Form.Control type="input" name={`choice_${choice}`} required />
-                        <Form.Control.Feedback type="invalid">Answer must be non-empty</Form.Control.Feedback>
-                    </Col>
-                </Form.Group>
-                <br/>
-            </div>)}
-            <Form.Group as={Row}>
-                <Col sm={0} lg={2} xl={3} />
-                <Form.Label column sm={2} xl={1}>Solution</Form.Label>
-                <Col sm={9} lg={6} xl={5}>
-                    <Form.Select name="answer">
+            { choices.map((choice, _) => {
+                const fieldName = `choice_${choice}`;
+
+                return <div key={choice}>
+                    <Form.Group as={Row} className="mb-3">
+                        <Form.Label column sm={3} lg={2}>Answer {choice}</Form.Label>
+                        <Col sm={9} lg={10}>
+                            <Form.Control type="input"
+                            isInvalid={!!errors[fieldName]}
+                            {...register(fieldName, { required: true,
+                                                                minLength: config.RANGE_CHOICE_LENGTH[0],
+                                                                maxLength: config.RANGE_CHOICE_LENGTH[1] })} />
+                            {errors[fieldName]?.type === "required" && (
+                                <Form.Control.Feedback type="invalid">This is required</Form.Control.Feedback>
+                            )}
+                            {errors[fieldName]?.type === "minLength" && (
+                                <Form.Control.Feedback type="invalid">The answer is too short</Form.Control.Feedback>
+                            )}
+                            {errors[fieldName]?.type === "maxLength" && (
+                                <Form.Control.Feedback type="invalid">The answer is too long</Form.Control.Feedback>
+                            )}
+                        </Col>
+                    </Form.Group>
+                </div>
+            })}
+            <Form.Group as={Row} className="mb-3">
+                <Form.Label column sm={3} lg={2}>Solution</Form.Label>
+                <Col sm={9} lg={10}>
+                    <Form.Select
+                     defaultValue=""
+                     isInvalid={!!errors.answer}
+                     {...register("answer", { required: true, minLength: 1 })}>
+                    <option disabled value="">Please select</option>
                     { choices.map((choice, _) =>
                         <option value={choice} key={choice}>Answer {choice}</option>)}
                     </Form.Select>
                 </Col>
             </Form.Group>
-            <br/>
             <Button type="submit">Submit Question</Button>
         </Form>
-        { /* TODO: Improve handling/display of errors from server */ }
-        { errorMessage
-        && <p>Error in question: {errorMessage}</p> }
     </>;
 }

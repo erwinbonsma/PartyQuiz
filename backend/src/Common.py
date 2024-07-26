@@ -11,8 +11,8 @@ class Config:
     MAX_ATTEMPTS = 3
     RANGE_NAME_LENGTH = (2, 20)
     RANGE_CHOICES_PER_QUESTION = (4, 4)
-    RANGE_QUESTION_LENGTH = (10, 200)
-    RANGE_CHOICE_LENGTH = (1, 20)
+    RANGE_QUESTION_LENGTH = (10, 160)
+    RANGE_CHOICE_LENGTH = (1, 80)
 
 
 class ClientRole(IntEnum):

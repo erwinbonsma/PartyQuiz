@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 
 import Button from 'react-bootstrap/Button';
@@ -44,7 +43,7 @@ export function QuizRegistration({ getWebsocket, playerName, quizId, onDone }) {
     return <>
         <h1>Registration</h1>
         <Form onSubmit={handleSubmit(onSubmit)} noValidate className="mx-2">
-            <Form.Group as={Row}>
+            <Form.Group as={Row} className="mb-3">
                 <Form.Label column sm={5}>Name</Form.Label>
                 <Col sm={7}>
                     <Form.Control type="input"
@@ -55,15 +54,15 @@ export function QuizRegistration({ getWebsocket, playerName, quizId, onDone }) {
                         <Form.Control.Feedback type="invalid">This is required</Form.Control.Feedback>
                     )}
                     {errors.name?.type === "maxLength" && (
-                        <Form.Control.Feedback type="invalid">Max length exceeded</Form.Control.Feedback>
+                        <Form.Control.Feedback type="invalid">Name is too long</Form.Control.Feedback>
                     )}
                 </Col>
             </Form.Group>
-            <br/>
-            <Form.Group as={Row}>
+            <Form.Group as={Row} className="mb-3">
                 <Form.Label column sm={5}>Where do you know Erwin from?</Form.Label>
                 <Col sm={7}>
                     <Form.Select defaultValue=""
+                     isInvalid={!!errors.avatar}
                      {...register("avatar", { required: true, minLength: 1 })}>
                     <option disabled value="">Please select</option>
                     { Object.entries(avatarOptions).map(([k, v]) =>
@@ -71,7 +70,6 @@ export function QuizRegistration({ getWebsocket, playerName, quizId, onDone }) {
                     </Form.Select>
                 </Col>
             </Form.Group>
-            <br/>
             <Button type="submit">Register</Button>
         </Form>
     </>;
