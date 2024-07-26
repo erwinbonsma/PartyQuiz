@@ -25,6 +25,13 @@ p {
     font-size: 22px;
 }
 
+Button {
+    margin-right: 10px;
+    margin-left: 10px;
+    margin-top: 5px;
+    margin-bottom: 5px;
+}
+
 .App-link {
   color: #61dafb;
 }
