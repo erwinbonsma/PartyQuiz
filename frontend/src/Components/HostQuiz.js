@@ -5,17 +5,25 @@ import { QuizSetupStats } from './QuizSetupStats';
 
 export function HostQuiz({ websocket, quizId }) {
     const [quizStarted, setQuizStarted] = useState(false);
+    const [viewLobby, setViewLobby] = useState(false);
 
     const startQuiz = () => {
         setQuizStarted(true);
+        setViewLobby(false);
+    }
+    const enterLobby = () => {
+        setViewLobby(true);
     }
 
     return (<div className="HostQuiz">
-        { quizStarted
-        ? <p>Quiz started</p>
+        { (quizStarted && !viewLobby)
+        ? <>
+            <p>Quiz started</p>
+            <Button onClick={enterLobby}>View Lobby</Button>
+        </>
         : <>
             <QuizSetupStats websocket={websocket} quizId={quizId} />
-            <Button className="mx-2" onClick={startQuiz}>Start Quiz</Button>
+            <Button onClick={startQuiz}>{quizStarted ? "Resume Quiz" : "Start Quiz"}</Button>
         </>}
     </div>);
 }
