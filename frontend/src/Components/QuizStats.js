@@ -7,7 +7,7 @@ import Row from 'react-bootstrap/Row';
 
 import { PlayerBadge } from './PlayerBadge';
 
-export function QuizSetupStats({ websocket, quizId, players, poolQuestions }) {
+export function QuizStats({ websocket, quizId, players, poolQuestions, questions }) {
     const [latestQuestion, setLatestQuestion] = useState();
 
     console.info("players: ", players);
@@ -28,12 +28,16 @@ export function QuizSetupStats({ websocket, quizId, players, poolQuestions }) {
     }, []);
 
     const numPlayers = Object.keys(players).length;
-    const numQuestions = Object.keys(poolQuestions).length;
+    const numPoolQuestions = Object.keys(poolQuestions).length;
+    const numQuestions = Object.keys(questions).length;
 
     return (<div className="QuizSetupStats">
-        <h1>Player Lobby</h1>
-        Quiz ID: {quizId}
         <Container className="mb-3">
+            <Row>
+                <Col lg={2} />
+                <Col lg={8}><h1>Player Lobby</h1></Col>
+                <Col lg={2}>Quiz ID: {quizId}</Col>
+            </Row>
             <Row>{ Object.entries(players).map(([k, v]) =>
                 <Col lg={3} key={k} className="my-2"><PlayerBadge
                     playerName={v.name}
@@ -43,11 +47,16 @@ export function QuizSetupStats({ websocket, quizId, players, poolQuestions }) {
                 </Col>
             )}</Row>
         </Container>
-        <Container className="mb-4">
-        <h1>Question Pool</h1>
-            { (numPlayers > 0)
-            && <ProgressBar now={100 * numQuestions / numPlayers} label={`${numQuestions}/${numPlayers}`} />}
-            { latestQuestion && <h4>Latest: {latestQuestion}</h4>}
-            </Container>
+        { (numPoolQuestions > 0) &&
+            <Container className="mb-4">
+                <h2>Question Pool</h2>
+                <ProgressBar now={100 * numPoolQuestions / numPlayers} label={`${numPoolQuestions}/${numPlayers}`} />
+                { latestQuestion && <h4>Latest: {latestQuestion}</h4>}
+            </Container>}
+        { (numQuestions > 0) &&
+            <Container className="mb-4">
+                <h2>Quiz Progress</h2>
+                <ProgressBar now={100 * numQuestions / numPoolQuestions} label={`${numQuestions}/${numPoolQuestions}`} />
+            </Container>}
     </div>);
 }

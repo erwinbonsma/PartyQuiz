@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
 import Button from 'react-bootstrap/Button';
 
-import { QuizSetupStats } from './QuizSetupStats';
+import { QuizStats } from './QuizStats';
 
 export function HostQuiz({ websocket, quizId }) {
-    const [quizStarted, setQuizStarted] = useState(false);
     const [viewLobby, setViewLobby] = useState(false);
     const [players, setPlayers] = useState({});
     const [poolQuestions, setPoolQuestions] = useState({});
+    const [questions, setQuestions] = useState({});
 
     useEffect(() => {
         const messageHandler = (event) => {
@@ -19,6 +19,9 @@ export function HostQuiz({ websocket, quizId }) {
             }
             if (msg.type === "pool-questions") {
                 setPoolQuestions(msg.questions);
+            }
+            if (msg.type === "questions") {
+                setQuestions(msg.questions);
             }
 
             if (msg.type === "player-registered") {
@@ -47,6 +50,13 @@ export function HostQuiz({ websocket, quizId }) {
                     questions => ({ ...questions, [msg.client_id]: msg.question})
                 );
             }
+            if (msg.type === "question-opened") {
+                // Register newly added question
+                // Note: This does not include the answer, but that is okay.
+                setQuestions(
+                    questions => ({ ...questions, [msg.question_id]: msg.question})
+                );
+            }
         };
 
         websocket.addEventListener('message', messageHandler);
@@ -59,19 +69,24 @@ export function HostQuiz({ websocket, quizId }) {
 			action: "get-pool-questions",
             quiz_id: quizId,
         }));
+        websocket.send(JSON.stringify({
+			action: "get-questions",
+            quiz_id: quizId,
+        }));
 
         return function cleanup() {
             websocket.removeEventListener('message', messageHandler);
         }
     }, []);
 
-    const startQuiz = () => {
-        setQuizStarted(true);
+    const enterQuiz = () => {
         setViewLobby(false);
     }
     const enterLobby = () => {
         setViewLobby(true);
     }
+
+    const quizStarted = (Object.keys(questions).length > 0);
 
     return (<div className="HostQuiz">
         { (quizStarted && !viewLobby)
@@ -80,8 +95,9 @@ export function HostQuiz({ websocket, quizId }) {
             <Button onClick={enterLobby}>View Lobby</Button>
         </>
         : <>
-            <QuizSetupStats websocket={websocket} quizId={quizId} players={players} poolQuestions={poolQuestions} />
-            <Button onClick={startQuiz}>{quizStarted ? "Resume Quiz" : "Start Quiz"}</Button>
+            <QuizStats websocket={websocket} quizId={quizId}
+             players={players} poolQuestions={poolQuestions} questions={questions} />
+            <Button onClick={enterQuiz}>{quizStarted ? "Resume Quiz" : "Start Quiz"}</Button>
         </>}
     </div>);
 }

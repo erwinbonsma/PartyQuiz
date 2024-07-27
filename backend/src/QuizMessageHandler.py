@@ -366,6 +366,8 @@ class QuizMessageHandler(BaseMessageHandler):
         return await self.send_message(json.dumps({
             "type": "questions",
             "questions": {id: q.asdict(strip_answer=False) for id, q in self.quiz.get_questions().items()},
+            "question_id": self.quiz.question_id,
+            "is_question_open": self.quiz.is_question_open,
         }))
 
     async def get_answers(self):
