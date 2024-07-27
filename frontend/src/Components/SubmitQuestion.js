@@ -21,8 +21,7 @@ export function SubmitQuestion({ websocket, quizId, question, enableCancel, onDo
 
         const question = {
             question: data.question,
-            // TODO: Get dynamically
-            choices: [data.choice_1, data.choice_2, data.choice_3, data.choice_4],
+            choices: choices.map((choice, _) => data[`choice_${choice.id}`]),
             answer: parseInt(data.answer),
         };
 
