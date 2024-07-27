@@ -9,10 +9,9 @@ export function HostQuiz({ websocket, quizId }) {
     const [players, setPlayers] = useState({});
     const [poolQuestions, setPoolQuestions] = useState({});
     const [questions, setQuestions] = useState({});
+    const [answers, setAnswers] = useState({});
     const [questionId, setQuestionId] = useState(0);
     const [isQuestionOpen, setIsQuestionOpen] = useState(false);
-
-    console.info({ poolQuestions });
 
     useEffect(() => {
         const messageHandler = (event) => {
@@ -29,6 +28,9 @@ export function HostQuiz({ websocket, quizId }) {
                 setQuestions(msg.questions);
                 setQuestionId(msg.question_id);
                 setIsQuestionOpen(msg.is_question_open);
+            }
+            if (msg.type === "answers") {
+                setAnswers(msg.answers);
             }
 
             if (msg.type === "player-registered") {
@@ -66,6 +68,15 @@ export function HostQuiz({ websocket, quizId }) {
                 setQuestionId(msg.question_id);
                 setIsQuestionOpen(true);
             }
+            if (msg.type === "answer-received") {
+                setAnswers(
+                    answers => ({
+                        ...answers, [msg.question_id]: {
+                            ...answers[msg.question_id], [msg.player_id]: msg.answer
+                        }
+                    })
+                )
+            }
             if (msg.type === "question-closed") {
                 setQuestionId(msg.question_id);  // Should not be needed, but no harm
                 setIsQuestionOpen(false);
@@ -86,6 +97,10 @@ export function HostQuiz({ websocket, quizId }) {
 			action: "get-questions",
             quiz_id: quizId,
         }));
+        websocket.send(JSON.stringify({
+			action: "get-answers",
+            quiz_id: quizId,
+        }));
 
         return function cleanup() {
             websocket.removeEventListener('message', messageHandler);
@@ -100,7 +115,9 @@ export function HostQuiz({ websocket, quizId }) {
     }
 
     const quizStarted = questionId != 0;
-    const quizProps = { quizId, players, poolQuestions, questions, questionId, isQuestionOpen };
+    const quizProps = {
+        quizId, players, poolQuestions, questions, questionId, isQuestionOpen, answers
+    };
 
     return (<div className="HostQuiz">
         { !viewLobby
@@ -109,8 +126,7 @@ export function HostQuiz({ websocket, quizId }) {
             <Button onClick={enterLobby}>View Lobby</Button>
         </>
         : <>
-            <QuizStats websocket={websocket} quizId={quizId}
-             players={players} poolQuestions={poolQuestions} questions={questions} />
+            <QuizStats websocket={websocket} {...quizProps}/>
             <Button onClick={enterQuiz}>{quizStarted ? "Resume Quiz" : "Start Quiz"}</Button>
         </>}
     </div>);
