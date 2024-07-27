@@ -5,6 +5,7 @@ import ProgressBar from 'react-bootstrap/ProgressBar';
 import Row from 'react-bootstrap/Row';
 
 import { labelForChoiceIndex } from '../utils';
+
 import { AnswerChoice } from './AnswerChoice';
 import { PlayerBadge } from './PlayerBadge';
 
@@ -66,11 +67,12 @@ export function QuizQuestion({
                     </Row>
                 </>
                 : q.choices.map((choice, idx) => {
-                    const n = Object.values(a).filter((answer) => (answer == idx + 1)).length;
+                    const n = Object.values(a).filter((answer) => (answer === idx + 1)).length;
 
-                    return <Row>
-                        <Col lg={12} key={idx} className="p-2">
-                            <AnswerChoice label={labelForChoiceIndex(idx)} value={choice}/>
+                    return <Row key={idx}>
+                        <Col lg={12} className="p-2">
+                            <AnswerChoice label={labelForChoiceIndex(idx)} value={choice}
+                             isCorrect={ q.answer === idx + 1} />
                             { numAnswers > 0 && <ProgressBar now={100 * n / numAnswers} label={n} /> }
                         </Col>
                     </Row>
