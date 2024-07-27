@@ -271,7 +271,9 @@ class QuizMessageHandler(BaseMessageHandler):
 
         return await self.send_message(json.dumps({
             "type": "pool-questions",
-            "questions": [q.asdict(strip_answer=False) for q in self.quiz.questions_pool()]
+            "questions": {
+                q.author_id: q.asdict(strip_answer=False) for q in self.quiz.questions_pool()
+            }
         }))
 
     async def open_question(self, author_id, question, choices, answer):
