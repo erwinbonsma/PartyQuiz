@@ -6,12 +6,15 @@ import Form from 'react-bootstrap/Form';
 import Row from 'react-bootstrap/Row';
 
 import config from '../utils/config';
-import { handleResponse } from '../utils';
+import { handleResponse, labelForChoiceIndex } from '../utils';
 
 export function SubmitQuestion({ websocket, quizId, question, enableCancel, onDone }) {
     const {register, handleSubmit, formState: { errors }} = useForm();
 
-    const choices = Array(config.NUM_CHOICES).fill(0).map((_, idx) => idx + 1);
+    const choices = Array(config.NUM_CHOICES).fill(0).map((_, idx) => ({
+        id: idx + 1,
+        label: labelForChoiceIndex(idx),
+    }));
 
     const onSubmit = (data) => {
         console.info(data);
@@ -57,19 +60,19 @@ export function SubmitQuestion({ websocket, quizId, question, enableCancel, onDo
                     )}
                 </Col>
             </Form.Group>
-            { choices.map((choice, _) => {
-                const fieldName = `choice_${choice}`;
+            { choices.map((choice, idx) => {
+                const fieldName = `choice_${choice.id}`;
 
-                return <div key={choice}>
+                return <div key={choice.id}>
                     <Form.Group as={Row} className="mb-3">
-                        <Form.Label column sm={3} lg={2}>Answer {choice}</Form.Label>
+                        <Form.Label column sm={3} lg={2}>Answer {choice.label}</Form.Label>
                         <Col sm={9} lg={10}>
                             <Form.Control type="input"
-                            defaultValue={question?.choices[choice - 1]}
+                            defaultValue={question?.choices[idx]}
                             isInvalid={!!errors[fieldName]}
                             {...register(fieldName, { required: true,
-                                                                minLength: config.RANGE_CHOICE_LENGTH[0],
-                                                                maxLength: config.RANGE_CHOICE_LENGTH[1] })} />
+                                                      minLength: config.RANGE_CHOICE_LENGTH[0],
+                                                      maxLength: config.RANGE_CHOICE_LENGTH[1] })} />
                             {errors[fieldName]?.type === "required" && (
                                 <Form.Control.Feedback type="invalid">This is required</Form.Control.Feedback>
                             )}
@@ -92,7 +95,7 @@ export function SubmitQuestion({ websocket, quizId, question, enableCancel, onDo
                      {...register("answer", { required: true, minLength: 1 })}>
                     <option disabled value="">Please select</option>
                     { choices.map((choice, _) =>
-                        <option value={choice} key={choice}>Answer {choice}</option>)}
+                        <option value={choice.id} key={choice.id}>Answer {choice.label}</option>)}
                     </Form.Select>
                 </Col>
             </Form.Group>

@@ -18,3 +18,7 @@ export function handleResponse(websocket, onSuccess, onFailure) {
 
     websocket.addEventListener('message', handleMessage);
 }
+
+export function labelForChoiceIndex(index) {
+    return String.fromCharCode(65 + index);
+}
