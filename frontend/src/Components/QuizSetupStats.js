@@ -9,7 +9,6 @@ import { PlayerBadge } from './PlayerBadge';
 
 export function QuizSetupStats({ websocket, quizId }) {
     const [players, setPlayers] = useState({});
-    const [playersPresent, setPlayersPresent] = useState({});
     const [poolQuestions, setPoolQuestions] = useState({});
     const [latestQuestion, setLatestQuestion] = useState();
 
@@ -20,34 +19,31 @@ export function QuizSetupStats({ websocket, quizId }) {
 
             console.info(msg);
             if (msg.type === "players") {
-                setPlayers(
-                    Object.fromEntries(Object.entries(msg.players).map((
-                        [k, v]) => [k, {name: v.name, avatar: v.avatar}])));
-                setPlayersPresent(
-                    Object.fromEntries(Object.entries(msg.players).map((
-                        [k, v]) => [k, v.online])));
+                setPlayers(msg.players);
             }
             if (msg.type === "pool-questions") {
-                setPoolQuestions(
-                    Object.fromEntries(Object.entries(msg.questions).map((
-                        [k, v]) => [k, v.question])));
+                setPoolQuestions(msg.questions);
             }
 
             if (msg.type === "player-registered") {
                 setPlayers(
                     players => ({ ...players, [msg.client_id]: {
-                        name: msg.player_name, avatar: msg.avatar
+                        name: msg.player_name, avatar: msg.avatar, online: false
                     }})
                 );
             }
             if (msg.type === "player-connected") {
-                setPlayersPresent(
-                    playersPresent => ({ ...playersPresent, [msg.client_id]: true })
+                setPlayers(
+                    players => ({
+                        ...players,
+                        [msg.client_id]: { ...players[msg.client_id], online: true }})
                 );
             }
             if (msg.type === "player-disconnected") {
-                setPlayersPresent(
-                    playersPresent => ({ ...playersPresent, [msg.client_id]: false })
+                setPlayers(
+                    players => ({
+                        ...players,
+                        [msg.client_id]: { ...players[msg.client_id], online: false }})
                 );
             }
             if (msg.type === "question-updated") {
@@ -85,7 +81,7 @@ export function QuizSetupStats({ websocket, quizId }) {
                 <Col lg={3} key={k} className="my-2"><PlayerBadge
                     playerName={v.name}
                     avatar={v.avatar}
-                    isPresent={playersPresent[k]}
+                    isPresent={v.online}
                     hasQuestion={!!poolQuestions[k]}/>
                 </Col>
             )}</Row>
