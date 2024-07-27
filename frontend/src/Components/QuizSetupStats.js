@@ -7,9 +7,7 @@ import Row from 'react-bootstrap/Row';
 
 import { PlayerBadge } from './PlayerBadge';
 
-export function QuizSetupStats({ websocket, quizId }) {
-    const [players, setPlayers] = useState({});
-    const [poolQuestions, setPoolQuestions] = useState({});
+export function QuizSetupStats({ websocket, quizId, players, poolQuestions }) {
     const [latestQuestion, setLatestQuestion] = useState();
 
     console.info("players: ", players);
@@ -17,53 +15,12 @@ export function QuizSetupStats({ websocket, quizId }) {
         const messageHandler = (event) => {
             const msg = JSON.parse(event.data);
 
-            console.info(msg);
-            if (msg.type === "players") {
-                setPlayers(msg.players);
-            }
-            if (msg.type === "pool-questions") {
-                setPoolQuestions(msg.questions);
-            }
-
-            if (msg.type === "player-registered") {
-                setPlayers(
-                    players => ({ ...players, [msg.client_id]: {
-                        name: msg.player_name, avatar: msg.avatar, online: false
-                    }})
-                );
-            }
-            if (msg.type === "player-connected") {
-                setPlayers(
-                    players => ({
-                        ...players,
-                        [msg.client_id]: { ...players[msg.client_id], online: true }})
-                );
-            }
-            if (msg.type === "player-disconnected") {
-                setPlayers(
-                    players => ({
-                        ...players,
-                        [msg.client_id]: { ...players[msg.client_id], online: false }})
-                );
-            }
             if (msg.type === "question-updated") {
-                setPoolQuestions(
-                    questions => ({ ...questions, [msg.client_id]: msg.question})
-                );
                 setLatestQuestion(msg.question);
             }
         };
 
         websocket.addEventListener('message', messageHandler);
-
-        websocket.send(JSON.stringify({
-			action: "get-players",
-            quiz_id: quizId,
-        }));
-        websocket.send(JSON.stringify({
-			action: "get-pool-questions",
-            quiz_id: quizId,
-        }));
 
         return function cleanup() {
             websocket.removeEventListener('message', messageHandler);
