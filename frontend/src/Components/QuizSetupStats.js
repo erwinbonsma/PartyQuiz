@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 
 import Container from 'react-bootstrap/esm/Container';
 import Col from 'react-bootstrap/Col';
+import ProgressBar from 'react-bootstrap/ProgressBar';
 import Row from 'react-bootstrap/Row';
 
 import { PlayerBadge } from './PlayerBadge';
@@ -73,9 +74,12 @@ export function QuizSetupStats({ websocket, quizId }) {
         }
     }, []);
 
+    const numPlayers = Object.keys(players).length;
+    const numQuestions = Object.keys(poolQuestions).length;
+
     return (<div className="QuizSetupStats">
         <h1>Player Lobby</h1>
-        {Object.keys(players).length} players
+        {numPlayers} players
         <Container className="mb-3">
             <Row>{ Object.entries(players).map(([k, v]) =>
                 <Col lg={3} key={k} className="my-2"><PlayerBadge
@@ -88,8 +92,9 @@ export function QuizSetupStats({ websocket, quizId }) {
         </Container>
         <Container className="mb-4">
         <h1>Question Pool</h1>
-            <div className="mb-1">{Object.keys(poolQuestions).length} questions</div>
-            <h4>Latest: {latestQuestion}</h4>
+            { (numPlayers > 0)
+            && <ProgressBar now={100 * numQuestions / numPlayers} label={`${numQuestions}/${numPlayers}`} />}
+            { latestQuestion && <h4>Latest: {latestQuestion}</h4>}
             </Container>
     </div>);
 }
