@@ -254,16 +254,16 @@ class QuizMessageHandler(BaseMessageHandler):
         another source. Players may modify questions while the quiz is ongoing.
         """
         client_id = self.check_role(ClientRole.Player)
+        question_obj = create_question(client_id, question, choices, answer)
 
-        if not self.quiz.set_pool_question(create_question(client_id, question, choices, answer)):
+        if not self.quiz.set_pool_question(question_obj):
             raise HandlerException(
                 "Failed to set question", ErrorCode.InternalServerError)
 
         await self.send_message(ok_message())
 
-        await self.notify_host("question-updated", {
-            "client_id": client_id,
-            "question": question
+        await self.notify_host("pool-question-updated", {
+            "question": question_obj.asdict(strip_answer=False)
         })
 
     async def get_pool_questions(self):
