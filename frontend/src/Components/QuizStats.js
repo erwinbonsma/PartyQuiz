@@ -42,8 +42,7 @@ export function QuizStats({ websocket, quizId, players, poolQuestions, questions
                 <Col lg={3} key={k} className="my-2"><PlayerBadge
                     playerName={v.name}
                     avatar={v.avatar}
-                    isPresent={v.online}
-                    hasQuestion={!!poolQuestions[k]}/>
+                    status={{ isPresent: v.online, hasQuestion: !!poolQuestions[k] }} />
                 </Col>
             )}</Row>
         </Container>

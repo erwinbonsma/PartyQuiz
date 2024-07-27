@@ -6,6 +6,7 @@ import Row from 'react-bootstrap/Row';
 
 import { labelForChoiceIndex } from '../utils';
 import { AnswerChoice } from './AnswerChoice';
+import { PlayerBadge } from './PlayerBadge';
 
 export function QuizQuestion({
     websocket, quizId, players, poolQuestions, questions, questionId, isQuestionOpen, answers
@@ -42,9 +43,17 @@ export function QuizQuestion({
 
     return (<div className="QuizQuestion">
         { q && <>
-            <h1>Question {questionId}</h1>
-            <div className="Question">{q.question}</div>
-            <Container className="mb-3">
+            <Container className="p-3">
+                <Row>
+                    <Col lg={3} />
+                    <Col lg={6} ><h1>Question {questionId}</h1></Col>
+                    <Col lg={3} ><PlayerBadge
+                                  playerName={ players[q.author_id].name }
+                                  avatar={ players[q.author_id].avatar } /></Col>
+                </Row>
+                <Row>
+                    <div className="Question">{q.question}</div>
+                </Row>
                 { isQuestionOpen
                 ? <>
                     <Row>{ q.choices.map((choice, idx) =>

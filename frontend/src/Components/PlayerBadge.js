@@ -13,7 +13,7 @@ import Container from 'react-bootstrap/esm/Container';
 import Col from 'react-bootstrap/Col';
 import Row from 'react-bootstrap/Row';
 
-export function PlayerBadge({ playerName, avatar, isPresent, hasQuestion }) {
+export function PlayerBadge({ playerName, avatar, status }) {
     const icons = {
         "ai": AiIcon,
         "board games": BoardGamesIcon,
@@ -30,11 +30,12 @@ export function PlayerBadge({ playerName, avatar, isPresent, hasQuestion }) {
         <Row className="align-items-center px-2 py-1">
             <Col lg={2}>{Icon && <Icon height={32} width={32} />}</Col>
             <Col lg={8} className="PlayerName">{playerName}</Col>
-            <Col lg={2}>
-                {isPresent
-                ? (hasQuestion && <CheckmarkIcon height={24} width={24} />)
-                : <ErrorIcon height={24} width={24} />}
-            </Col>
+            { status &&
+                <Col lg={2}>
+                    {status.isPresent
+                    ? (status.hasQuestion && <CheckmarkIcon height={24} width={24} />)
+                    : <ErrorIcon height={24} width={24} />}
+                </Col>}
         </Row>
     </Container>
 }
