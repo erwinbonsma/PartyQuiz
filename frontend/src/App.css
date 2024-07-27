@@ -24,6 +24,13 @@ p {
 .PlayerName {
     font-size: 22px;
 }
+.Question {
+    font-size: 22px;
+}
+.AnswerChoice {
+    font-size: 22px;
+    background-color: #bbeebb;
+}
 
 Button {
     margin-right: 10px;

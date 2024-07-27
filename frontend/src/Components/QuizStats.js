@@ -15,7 +15,7 @@ export function QuizStats({ websocket, quizId, players, poolQuestions, questions
         const messageHandler = (event) => {
             const msg = JSON.parse(event.data);
 
-            if (msg.type === "question-updated") {
+            if (msg.type === "pool-question-updated") {
                 setLatestQuestion(msg.question);
             }
         };
@@ -51,7 +51,7 @@ export function QuizStats({ websocket, quizId, players, poolQuestions, questions
             <Container className="mb-4">
                 <h2>Question Pool</h2>
                 <ProgressBar now={100 * numPoolQuestions / numPlayers} label={`${numPoolQuestions}/${numPlayers}`} />
-                { latestQuestion && <h4>Latest: {latestQuestion}</h4>}
+                { latestQuestion && <h4>Latest: {latestQuestion.question}</h4>}
             </Container>}
         { (numQuestions > 0) &&
             <Container className="mb-4">
