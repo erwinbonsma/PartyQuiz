@@ -318,7 +318,9 @@ class QuizMessageHandler(BaseMessageHandler):
         # relatively expensive to obtain (and host can keep local count).
         await self.broadcast(json.dumps({
             "type": "answer-received",
-            "question_id": question_id
+            "question_id": question_id,
+            "player_id": client_id,
+            "answer": answer,
         }), skip_players=True)
 
         await self.send_message(ok_message())
@@ -376,7 +378,6 @@ class QuizMessageHandler(BaseMessageHandler):
         return await self.send_message(json.dumps({
             "type": "answers",
             "answers": self.quiz.get_answers(),
-            "solutions": self.quiz.get_solutions(),
         }))
 
     async def _handle_message(self, msg):
