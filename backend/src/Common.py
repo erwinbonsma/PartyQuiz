@@ -18,7 +18,6 @@ class Config:
 class ClientRole(IntEnum):
     Host = 1
     Player = 2
-    Observer = 3
 
 
 @dataclass

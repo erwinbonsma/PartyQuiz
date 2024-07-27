@@ -1,6 +1,7 @@
 import asyncio
 import json
 import random
+from typing import Optional
 from BaseMessageHandler import (BaseMessageHandler, ErrorCode, HandlerException,
                                 error_message, ok_message, status_message)
 from Common import Config, ClientRole, Question, create_id
@@ -79,25 +80,29 @@ class QuizMessageHandler(BaseMessageHandler):
             raise HandlerException(
                 f"Quiz {quiz_id} not found", ErrorCode.QuizNotFound)
 
+    def get_role(self, client_id) -> Optional[ClientRole]:
+        if self.quiz.host_id == client_id:
+            return ClientRole.Host
+        if client_id in self.quiz.players:
+            return ClientRole.Player
+        return None
+
     def check_role(self, required_role: ClientRole):
         client_id = self.quiz.get_client_id(self.connection)
         if client_id is None:
             raise HandlerException(
                 "Must join quiz first", ErrorCode.NotAllowed)
 
-        if required_role == ClientRole.Host:
-            if self.quiz.host_id != client_id:
-                raise HandlerException(f"{client_id} is not the host", ErrorCode.NotAllowed)
-        if required_role == ClientRole.Player:
-            if not client_id in self.quiz.players:
-                raise HandlerException(f"{client_id} is not a player", ErrorCode.NotAllowed)
+        if self.get_role(client_id) != required_role:
+            raise HandlerException(f"{client_id} does not have required role",
+                                   ErrorCode.NotAllowed)
 
         return client_id
 
-    async def broadcast(self, message, skip_players=False):
+    async def broadcast(self, message, skip_roles=[]):
         tasks = [asyncio.create_task(self.comms.send(ws, message))
                  for ws, client_id in self.quiz.clients.items()
-                 if not skip_players or client_id not in self.quiz.players]
+                 if self.get_role(client_id) not in skip_roles]
         if tasks:
             self.logger.info(
                 "broadcasting %s to %d clients", message, len(tasks))
@@ -113,19 +118,14 @@ class QuizMessageHandler(BaseMessageHandler):
             "question_pool_size": len(self.quiz.questions_pool()),
             "question_id": self.quiz.question_id,
             "is_question_open": self.quiz.is_question_open,
-        }), skip_players=True)
+        }), skip_roles=[ClientRole.Player])
 
     async def notify_host(self, message_type, fields):
-        host_ws = [ws for ws, client_id in self.quiz.clients.items()
-                   if client_id == self.quiz.host_id]
-
-        if len(host_ws) == 0:
-            return
-
-        await self.send_message(json.dumps({
+        # Use broadcast as host may have multiple connection open
+        await self.broadcast(json.dumps({
             "type": message_type,
             **fields
-        }), host_ws[0])
+        }), skip_roles=[ClientRole.Player])
 
     async def create_quiz(self, name, make_default=False):
         host_id = create_id()
@@ -287,11 +287,17 @@ class QuizMessageHandler(BaseMessageHandler):
             raise HandlerException(
                 "Failed to open question", ErrorCode.InternalServerError)
 
-        await self.broadcast(json.dumps({
-            "type": "question-opened",
-            "question_id": question_id,
-            "question": question.asdict(strip_answer=True),
-        }))
+        def make_message(strip_answer):
+            return json.dumps({
+                "type": "question-opened",
+                "question_id": question_id,
+                "question": question.asdict(strip_answer=strip_answer),
+            })
+
+        await self.broadcast(make_message(strip_answer=False),
+                             skip_roles=[ClientRole.Player])
+        await self.broadcast(make_message(strip_answer=True),
+                             skip_roles=[ClientRole.Host])
 
     async def answer(self, question_id, answer):
         """
@@ -321,7 +327,7 @@ class QuizMessageHandler(BaseMessageHandler):
             "question_id": question_id,
             "player_id": client_id,
             "answer": answer,
-        }), skip_players=True)
+        }), skip_roles=[ClientRole.Player])
 
         await self.send_message(ok_message())
 
