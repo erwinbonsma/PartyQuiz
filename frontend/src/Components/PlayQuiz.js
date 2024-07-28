@@ -3,10 +3,10 @@ import Button from 'react-bootstrap/Button';
 import Stack from 'react-bootstrap/Stack';
 import ToggleButton from 'react-bootstrap/ToggleButton';
 
-import { handleResponse } from '../utils';
+import { handleResponse, labelForChoiceIndex } from '../utils';
 
 export function PlayQuiz({ websocket, quizId }) {
-    const [questionId, setQuestionId] = useState();
+    const [questionId, setQuestionId] = useState(0);
     const [isQuestionOpen, setQuestionIsOpen] = useState(false);
     const [answer, setAnswer] = useState();
     const [choices, setChoices] = useState();
@@ -24,6 +24,7 @@ export function PlayQuiz({ websocket, quizId }) {
             setDidAnswer(false);
         }
         if (msg.type === "question-closed") {
+            setQuestionId(msg.question_id);
             setQuestionIsOpen(false);
         }
     };
@@ -68,11 +69,11 @@ export function PlayQuiz({ websocket, quizId }) {
 
     return <>
         <h1>{
-            questionId
+            questionId > 0
             ? <div>Question {questionId}</div>
             : <div>Waiting for quiz to start</div>
         }</h1>
-        { questionId
+        { choices
         && <Stack gap={3} className="col-md-5 mx-auto">
             { choices.map((choice, idx) => (<ToggleButton
                 key={idx}
@@ -83,7 +84,7 @@ export function PlayQuiz({ websocket, quizId }) {
                 disabled={!canAnswer}
                 checked={answer === idx + 1}
                 onChange={() => setAnswer(idx + 1)}
-                >{`${String.fromCharCode(65 + idx)}. ${choice}`}</ToggleButton>)) }
+                >{`${labelForChoiceIndex(idx)}. ${choice}`}</ToggleButton>)) }
             <Button
                 onClick={sendAnswer}
                 disabled={!answer || !canAnswer}
