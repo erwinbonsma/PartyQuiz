@@ -9,8 +9,6 @@ export function ScoreTable({ players, scores, maxSize, header }) {
     const sortedScores = Object.entries(scores).sort((a, b) => (b[1] - a[1]));
     const topScores = sortedScores.slice(0, maxSize);
 
-    console.info({ topScores });
-
     return (<Container className="ScoreTable">
         <Row><h2>{header}</h2></Row>
         <Row className="m-2">
