@@ -64,7 +64,9 @@ export function QuizQuestion({
                         </Col>
                     )}</Row>
                     <Row>
-                        <ProgressBar now={100 * numAnswers / numPlayers} label={`${numAnswers}/${numPlayers}`}/>
+                        <Col>
+                            <ProgressBar now={100 * numAnswers / numPlayers} label={`${numAnswers}/${numPlayers}`}/>
+                        </Col>
                     </Row>
                 </>
                 : q.choices.map((choice, idx) => {

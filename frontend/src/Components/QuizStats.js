@@ -28,8 +28,6 @@ export function QuizStats({ websocket, quizId, players, poolQuestions, questions
     }, []);
 
     const numPlayers = Object.keys(players).length;
-    const numPoolQuestions = Object.keys(poolQuestions).length;
-    const numQuestions = Object.keys(questions).length;
 
     return (<div className="QuizSetupStats">
         { (numPlayers > 0) &&
@@ -44,17 +42,6 @@ export function QuizStats({ websocket, quizId, players, poolQuestions, questions
                         status={{ isPresent: v.online, hasQuestion: !!poolQuestions[k] }} />
                     </Col>
                 )}</Row>
-            </Container>}
-        { (numPoolQuestions > 0) &&
-            <Container className="mb-4">
-                <h2>Question Pool</h2>
-                <ProgressBar now={100 * numPoolQuestions / numPlayers} label={`${numPoolQuestions}/${numPlayers}`} />
-                { latestQuestion && <h4>Latest: {latestQuestion.question}</h4>}
-            </Container>}
-        { (numQuestions > 0) &&
-            <Container className="mb-4">
-                <h2>Quiz Progress</h2>
-                <ProgressBar now={100 * numQuestions / numPoolQuestions} label={`${numQuestions}/${numPoolQuestions}`} />
             </Container>}
     </div>);
 }
