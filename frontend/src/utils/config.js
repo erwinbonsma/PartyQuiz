@@ -1,5 +1,6 @@
 const configSettings = {
-	SERVICE_ENDPOINT: 'ws://127.0.0.1:8765',
+	// SERVICE_ENDPOINT: 'ws://127.0.0.1:8765',
+    SERVICE_ENDPOINT: 'wss://ouj04zz7t3.execute-api.eu-west-1.amazonaws.com/dev',
 
     NUM_CHOICES: 4,
     QUIZ_NAME: "Party Quiz",
