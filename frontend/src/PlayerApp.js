@@ -94,13 +94,11 @@ export function PlayerApp() {
         setReviseQuestion(false);
     }
 
-    return <div className="PlayerApp">
+    return <div className="PlayerApp p-3">
         { joinedQuiz
         ? ( (submittedQuestion && !reviseQuestion)
-            ? (websocket && <>
-                <PlayQuiz websocket={websocket} quizId={quizId} />
-                <Button onClick={() => setReviseQuestion(true)}>Revise question</Button>
-            </>)
+            ? (websocket && <PlayQuiz websocket={websocket} quizId={quizId}
+                             onReviseQuestion={() => setReviseQuestion(true)}/>)
             : (websocket && <SubmitQuestion websocket={websocket} quizId={quizId}
                              question={question}
                              onDone={onSubmittedQuestion}

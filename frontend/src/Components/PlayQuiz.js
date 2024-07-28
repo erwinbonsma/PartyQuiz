@@ -5,7 +5,7 @@ import ToggleButton from 'react-bootstrap/ToggleButton';
 
 import { handleResponse, labelForChoiceIndex } from '../utils';
 
-export function PlayQuiz({ websocket, quizId }) {
+export function PlayQuiz({ websocket, quizId, onReviseQuestion }) {
     const [questionId, setQuestionId] = useState(0);
     const [isQuestionOpen, setQuestionIsOpen] = useState(false);
     const [answer, setAnswer] = useState();
@@ -67,29 +67,30 @@ export function PlayQuiz({ websocket, quizId }) {
 
     const canAnswer = isQuestionOpen && !didAnswer;
 
-    return <>
-        <h1>{
-            questionId > 0
-            ? <div>Question {questionId}</div>
-            : <div>Waiting for quiz to start</div>
-        }</h1>
-        { choices
-        && <Stack gap={3} className="col-md-5 mx-auto">
-            { choices.map((choice, idx) => (<ToggleButton
-                key={idx}
-                id={`radio-${idx}`}
-                type="radio"
-                variant="secondary"
-                size="lg"
-                disabled={!canAnswer}
-                checked={answer === idx + 1}
-                onChange={() => setAnswer(idx + 1)}
-                >{`${labelForChoiceIndex(idx)}. ${choice}`}</ToggleButton>)) }
-            <Button
-                onClick={sendAnswer}
-                disabled={!answer || !canAnswer}
-                variant="primary"
-                size="lg">Submit Answer</Button>
-        </Stack>
-    }</>;
+    return (questionId > 0
+        ? <>
+            <h1>Question {questionId}</h1>
+            { choices
+            && <Stack gap={3} className="col-md-5 mx-auto">
+                { choices.map((choice, idx) => (<ToggleButton
+                    key={idx}
+                    id={`radio-${idx}`}
+                    type="radio"
+                    variant="secondary"
+                    size="lg"
+                    disabled={!canAnswer}
+                    checked={answer === idx + 1}
+                    onChange={() => setAnswer(idx + 1)}
+                    >{`${labelForChoiceIndex(idx)}. ${choice}`}</ToggleButton>))}
+                <Button
+                    onClick={sendAnswer}
+                    disabled={!answer || !canAnswer}
+                    variant="primary"
+                    size="lg">Submit Answer</Button>
+            </Stack>
+            }</>
+        : <>
+            <h4>Waiting for quiz to start...</h4>
+            <Button onClick={onReviseQuestion}>Revise Question</Button>
+        </>);
 }
