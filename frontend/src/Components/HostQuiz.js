@@ -6,7 +6,7 @@ import Row from 'react-bootstrap/Row';
 import Tab from 'react-bootstrap/Tab';
 
 import { QuizScores } from './QuizScores';
-import { QuizStats } from './QuizStats';
+import { PlayerLobby } from './PlayerLobby';
 import { QuizQuestion } from './QuizQuestion';
 
 export function HostQuiz({ websocket, quizId }) {
@@ -129,7 +129,7 @@ export function HostQuiz({ websocket, quizId }) {
         <Row>
             <Tab.Content>
                 <Tab.Pane eventKey="lobby">
-                    <QuizStats websocket={websocket} {...quizProps}/>
+                    <PlayerLobby websocket={websocket} {...quizProps}/>
                 </Tab.Pane>
                 <Tab.Pane eventKey="question">
                     <QuizQuestion websocket={websocket} {...quizProps} />
