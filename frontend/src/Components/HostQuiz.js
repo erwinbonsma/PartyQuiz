@@ -1,11 +1,15 @@
 import { useEffect, useState } from 'react';
-import Button from 'react-bootstrap/Button';
 
+import Col from 'react-bootstrap/Col';
+import Nav from 'react-bootstrap/Nav';
+import Row from 'react-bootstrap/Row';
+import Tab from 'react-bootstrap/Tab';
+
+import { QuizScores } from './QuizScores';
 import { QuizStats } from './QuizStats';
 import { QuizQuestion } from './QuizQuestion';
 
 export function HostQuiz({ websocket, quizId }) {
-    const [viewLobby, setViewLobby] = useState(true);
     const [players, setPlayers] = useState({});
     const [poolQuestions, setPoolQuestions] = useState({});
     const [questions, setQuestions] = useState({});
@@ -107,27 +111,33 @@ export function HostQuiz({ websocket, quizId }) {
         }
     }, []);
 
-    const enterQuiz = () => {
-        setViewLobby(false);
-    }
-    const enterLobby = () => {
-        setViewLobby(true);
-    }
-
-    const quizStarted = questionId != 0;
     const quizProps = {
         quizId, players, poolQuestions, questions, questionId, isQuestionOpen, answers
     };
 
-    return (<div className="HostQuiz">
-        { !viewLobby
-        ? <>
-            <QuizQuestion websocket={websocket} {...quizProps} />
-            <Button onClick={enterLobby}>View Lobby</Button>
-        </>
-        : <>
-            <QuizStats websocket={websocket} {...quizProps}/>
-            <Button onClick={enterQuiz}>{quizStarted ? "Resume Quiz" : "Start Quiz"}</Button>
-        </>}
-    </div>);
+    return (<Tab.Container className="HostQuiz" defaultActiveKey="lobby">
+        <Row>
+            <Col lg={9}>
+                <Nav variant="tabs" defaultActiveKey="lobby">
+                    <Nav.Item><Nav.Link eventKey="lobby">Lobby</Nav.Link></Nav.Item>
+                    <Nav.Item><Nav.Link eventKey="question">Question</Nav.Link></Nav.Item>
+                    <Nav.Item><Nav.Link eventKey="scores">Scores</Nav.Link></Nav.Item>
+                </Nav>
+            </Col>
+            <Col lg={3}>Quiz ID: {quizId}</Col>
+        </Row>
+        <Row>
+            <Tab.Content>
+                <Tab.Pane eventKey="lobby">
+                    <QuizStats websocket={websocket} {...quizProps}/>
+                </Tab.Pane>
+                <Tab.Pane eventKey="question">
+                    <QuizQuestion websocket={websocket} {...quizProps} />
+                </Tab.Pane>
+                <Tab.Pane eventKey="scores">
+                    <QuizScores {...quizProps} />
+                </Tab.Pane>
+            </Tab.Content>
+        </Row>
+    </Tab.Container>);
 }

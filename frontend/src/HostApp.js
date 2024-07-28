@@ -92,7 +92,7 @@ export function HostApp() {
 		}));
     };
 
-    return (<div className="HostApp">
+    return (<div className="HostApp p-3">
         { joinedQuiz
         ? <HostQuiz websocket={websocket} quizId={quizId} />
         : <ButtonToolbar>

@@ -32,20 +32,19 @@ export function QuizStats({ websocket, quizId, players, poolQuestions, questions
     const numQuestions = Object.keys(questions).length;
 
     return (<div className="QuizSetupStats">
-        <Container className="mb-3">
-            <Row>
-                <Col lg={2} />
-                <Col lg={8}><h1>Player Lobby</h1></Col>
-                <Col lg={2}>Quiz ID: {quizId}</Col>
-            </Row>
-            <Row>{ Object.entries(players).map(([k, v]) =>
-                <Col lg={3} key={k} className="my-2"><PlayerBadge
-                    playerName={v.name}
-                    avatar={v.avatar}
-                    status={{ isPresent: v.online, hasQuestion: !!poolQuestions[k] }} />
-                </Col>
-            )}</Row>
-        </Container>
+        { (numPlayers > 0) &&
+            <Container className="mb-3">
+                <Row>
+                    <h2>Players</h2>
+                </Row>
+                <Row>{ Object.entries(players).map(([k, v]) =>
+                    <Col lg={3} key={k} className="my-2"><PlayerBadge
+                        playerName={v.name}
+                        avatar={v.avatar}
+                        status={{ isPresent: v.online, hasQuestion: !!poolQuestions[k] }} />
+                    </Col>
+                )}</Row>
+            </Container>}
         { (numPoolQuestions > 0) &&
             <Container className="mb-4">
                 <h2>Question Pool</h2>

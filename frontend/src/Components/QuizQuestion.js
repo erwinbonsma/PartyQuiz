@@ -41,6 +41,7 @@ export function QuizQuestion({
     const numPlayers = Object.keys(players).length;
     const a = answers[questionId] || {};
     const numAnswers = Object.keys(a).length;
+    const nextQuestionLabel = questionId === 0 ? "Start Quiz" : "Next Question";
 
     return (<div className="QuizQuestion">
         { q && <>
@@ -81,9 +82,8 @@ export function QuizQuestion({
         </>}
         { isQuestionOpen
         ? <Button onClick={closeQuestion}>Close Question</Button>
-        : ( availableQuestions.length > 0
-            ? <Button onClick={gotoNextQuestion}>Next Question</Button>
-            : <Button>End Quiz</Button>
-        )}
+        : <Button onClick={gotoNextQuestion} disabled={availableQuestions.length === 0}>
+            {nextQuestionLabel}
+        </Button>}
     </div>);
 }
