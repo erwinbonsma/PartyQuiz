@@ -31,6 +31,9 @@ p {
     font-size: 22px;
     background-color: #bbeebb;
 }
+.ScoreTable {
+    font-size: 22px;
+}
 
 Button {
     margin-right: 10px;
