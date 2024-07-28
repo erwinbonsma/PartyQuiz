@@ -20,7 +20,7 @@ export function ScoreTable({ players, scores, maxSize, header }) {
         </Row>
         { topScores.map(([playerId, score], idx) =>
             <Row key={playerId} className="m-2 align-items-center">
-                <Col md={1}>{idx}.</Col>
+                <Col md={1}>{idx + 1}.</Col>
                 <Col md={8}><PlayerBadge playerName={players[playerId]?.name}
                              avatar={players[playerId]?.avatar}/></Col>
                 <Col md={3}>{score}</Col>
