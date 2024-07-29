@@ -5,39 +5,42 @@ import Col from 'react-bootstrap/Col';
 import Form from 'react-bootstrap/Form';
 import Row from 'react-bootstrap/Row';
 
-import { handleResponse } from '../utils';
+import { getConfigSetting, getConfigSettings, handleResponse } from '../utils';
 
 export function QuizRegistration({ getWebsocket, playerName, quizId, onDone }) {
     const {register, handleSubmit, formState: { errors }} = useForm();
 
-    const onSubmit = (data) => {
-        console.info("data", data);
+    const avatarOptions = Object.fromEntries(
+        getConfigSettings(document, 'cfg-avatar')
+        .map((v) => {
+            const pos = v.indexOf(';');
+            return (pos < 0
+                ? [v, v]
+                : [v.slice(0, pos), v.slice(pos + 1)]);
+        })
+    );
+    const numAvatarOptions = Object.keys(avatarOptions).length;
 
+    const onSubmit = (data) => {
         const onRegister = (websocket) => {
-            console.info("Registering");
             handleResponse(websocket, (msg) => {
                 onDone(msg.client_id, msg.quiz_id);
             });
+
+            const avatar = (numAvatarOptions > 1
+                ? data.avatar
+                : (numAvatarOptions == 1) ? avatarOptions.keys()[0] : undefined
+            );
 
             websocket.send(JSON.stringify({
                 action: "register",
                 quiz_id: quizId,
                 player_name: data.name,
-                avatar: data.avatar,
+                avatar: avatar,
             }));
         };
 
         getWebsocket(onRegister);
-    };
-
-    const avatarOptions = {
-        "family": "Family",
-        "high school": "R.S.G.",
-        "university": "7-2",
-        "ai": "Edinburgh",
-        "tennis": "Tennis",
-        "go": "Go",
-        "board games": "Board games",
     };
 
     return <>
@@ -58,8 +61,9 @@ export function QuizRegistration({ getWebsocket, playerName, quizId, onDone }) {
                     )}
                 </Col>
             </Form.Group>
-            <Form.Group as={Row} className="mb-3">
-                <Form.Label column sm={5}>Where do you know Erwin from?</Form.Label>
+            { numAvatarOptions > 1
+            && <Form.Group as={Row} className="mb-3">
+                <Form.Label column sm={5}>{getConfigSetting(document, 'cfg-avatar-selection-label')}</Form.Label>
                 <Col sm={7}>
                     <Form.Select defaultValue=""
                      isInvalid={!!errors.avatar}
@@ -69,7 +73,7 @@ export function QuizRegistration({ getWebsocket, playerName, quizId, onDone }) {
                         <option value={k} key={k}>{v}</option>)}
                     </Form.Select>
                 </Col>
-            </Form.Group>
+            </Form.Group>}
             <Button type="submit">Register</Button>
         </Form>
     </>;

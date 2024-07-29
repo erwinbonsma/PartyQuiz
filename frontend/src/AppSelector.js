@@ -7,12 +7,14 @@ import ButtonToolbar from 'react-bootstrap/ButtonToolbar';
 import { HostApp } from './HostApp.js'
 import { PlayerApp } from './PlayerApp.js'
 
+import { getConfigSetting } from './utils';
+
 export function AppSelector() {
     const [appMode, setAppMode] = useState();
 
     // Get mode from HTML page. This is how it should work in production.
     useEffect(() => {
-        const mode = document.querySelector("meta[name='app-mode']")?.getAttribute("content");
+        const mode = getConfigSetting(document, 'cfg-app-mode');
         console.info(`app-mode from document = ${mode}`);
 
         setAppMode(mode);

@@ -22,3 +22,12 @@ export function handleResponse(websocket, onSuccess, onFailure) {
 export function labelForChoiceIndex(index) {
     return String.fromCharCode(65 + index);
 }
+
+export function getConfigSetting(document, name) {
+    return document.querySelector(`meta[name='${name}']`)?.getAttribute('content');
+}
+
+export function getConfigSettings(document, name) {
+    return Array.from(document.querySelectorAll(`meta[name='${name}']`)
+                     ).map((v) => v.getAttribute('content'));
+}
