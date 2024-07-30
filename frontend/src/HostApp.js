@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 
 import Button from 'react-bootstrap/Button';
-import ButtonToolbar from 'react-bootstrap/ButtonToolbar';
+import Stack from 'react-bootstrap/Stack';
 
 import config from './utils/config';
 import { handleResponse } from './utils';
 
 import { HostQuiz } from './Components/HostQuiz';
+import { JoinQuizForm } from './Components/JoinQuizForm';
 
 export function HostApp() {
     const [hostId, setHostId] = useState();
@@ -80,25 +81,21 @@ export function HostApp() {
 		}));
     };
 
-    const hostQuiz = () => {
-        handleResponse(websocket, () => {
-            setJoinedQuiz(true);
-        });
-
-        websocket.send(JSON.stringify({
-            action: "connect",
-            quiz_id: quizId,
-            client_id: hostId,
-		}));
-    };
+    const onJoinedQuiz = ({ quizId, clientId }) => {
+        console.info(`Joined quiz ${quizId} as host ${clientId}`);
+        setQuizId(quizId);
+        setHostId(clientId);
+        setJoinedQuiz(true);
+    }
 
     return (<div className="HostApp p-3">
         { joinedQuiz
         ? <HostQuiz websocket={websocket} quizId={quizId} />
-        : <ButtonToolbar>
+        : <Stack gap={3} className="col-md-5 mx-auto">
             <Button className="mx-2" onClick={createQuiz}>Create Quiz</Button>
-            <Button className="mx-2" onClick={hostQuiz} disabled={!quizId}>Host Quiz</Button>
-        </ButtonToolbar>}
+            <JoinQuizForm websocket={websocket} quizId={quizId} clientId={hostId}
+                onJoinedQuiz={onJoinedQuiz} />
+        </Stack>}
         { errorMessage
         && <><p>Error: {errorMessage}</p><Button onClick={() => setErrorMessage('')}>Retry</Button></> }
     </div>);
