@@ -73,6 +73,28 @@ def create_question(author_id, question, choices, answer):
 
 class QuizMessageHandler(BaseMessageHandler):
 
+    def check_is_root(self, client_id):
+        if (root_user := self.db.root_user) and client_id != root_user:
+            raise HandlerException("Root access required", ErrorCode.NotAllowed)
+
+    async def set_root_user(self, user, old_user=None):
+        self.check_is_root(old_user)
+
+        if not self.db.set_root_user(user):
+            raise HandlerException(
+                "Failed to update root user", ErrorCode.InternalServerError)
+
+        return await self.send_message(ok_message())
+
+    async def set_default_quiz(self, quiz_id, client_id):
+        self.check_is_root(client_id)
+
+        if not self.db.set_default_quiz_id(quiz_id):
+            raise HandlerException(
+                "Failed to update default quiz", ErrorCode.InternalServerError)
+
+        return await self.send_message(ok_message())
+
     def fetch_quiz(self, quiz_id):
         self.quiz = self.db.quiz_access(quiz_id)
 
@@ -127,8 +149,9 @@ class QuizMessageHandler(BaseMessageHandler):
             **fields
         }), skip_roles=[ClientRole.Player])
 
-    async def create_quiz(self, name, make_default=False):
-        host_id = create_id()
+    async def create_quiz(self, name, host_id=None, make_default=False):
+        if host_id is None:
+            host_id = create_id()
 
         for _ in range(Config.MAX_ATTEMPTS):  # Multiple attempts to handle ID clash
             quiz_id = create_id()
@@ -140,9 +163,11 @@ class QuizMessageHandler(BaseMessageHandler):
 
         self.logger.info(f"Created Quiz {quiz_id} with Host {host_id}")
 
-        if make_default and not self.db.set_default_quiz_id(quiz_id):
-            raise HandlerException(
-                "Failed to make quiz default", ErrorCode.InternalServerError)
+        if make_default:
+            self.check_is_root(host_id)
+            if not self.db.set_default_quiz_id(quiz_id):
+                raise HandlerException(
+                    "Failed to make quiz default", ErrorCode.InternalServerError)
 
         return await self.send_message(ok_message({
             "quiz_id": quiz_id,
@@ -199,7 +224,7 @@ class QuizMessageHandler(BaseMessageHandler):
         check_string_value("name", player_name, Config.RANGE_NAME_LENGTH)
 
         if quiz_id is None:
-            if (quiz_id := self.db.get_default_quiz_id()) is None:
+            if (quiz_id := self.db.default_quiz_id) is None:
                 raise HandlerException(
                     "Failed to get default quiz",
                     ErrorCode.InternalServerError)
@@ -391,16 +416,27 @@ class QuizMessageHandler(BaseMessageHandler):
 
         cmd = msg["action"]
 
+        # Admin commands
+        if cmd == "set-root-user":
+            return await self.set_root_user(
+                msg["value"],
+                msg.get("old_value"))
+        if cmd == "set-default-quiz":
+            return await self.set_default_quiz(
+                msg["quiz_id"],
+                msg["client_id"])
+
+        # Quiz creation and registration
         if cmd == "create-quiz":
             return await self.create_quiz(
-                msg["quiz_name"], msg.get("make_default"))
-
+                msg["quiz_name"],
+                host_id=msg.get("host_id"),
+                make_default=msg.get("make_default"))
         if cmd == "register":
             return await self.register(
                 player_name=msg["player_name"],
                 avatar=msg.get("avatar"),
-                quiz_id=msg.get("quiz_id")
-            )
+                quiz_id=msg.get("quiz_id"))
 
         if (quiz_id := msg.get("quiz_id")) is None:
             # To avoid extra look-up, best if client provides quiz_id in

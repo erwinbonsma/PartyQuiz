@@ -19,6 +19,63 @@ class DynamoDbStorage:
     def __init__(self, client=DEFAULT_CLIENT):
         self.client = client
 
+    @functools.cache
+    def _globals(self) -> dict:
+        try:
+            response = self.client.get_item(
+                TableName=Config.MAIN_TABLE,
+                Key={
+                    "PKEY": {"S": "Globals"},
+                    "SKEY": {"S": "Instance"},
+                }
+            )
+
+            return response.get("Item", {})
+        except Exception as e:
+            logger.warn(f"Failed to get globals: {e}")
+
+    def _get_global_str(self, name: str) -> Optional[str]:
+        return self._globals().get(name, {}).get("S")
+
+    def _set_global_str(self, name: str, value: str):
+        try:
+            response = self.client.update_item(
+                TableName=Config.MAIN_TABLE,
+                Key={
+                    "PKEY": {"S": "Globals"},
+                    "SKEY": {"S": "Instance"}
+                },
+                UpdateExpression=f"SET {name} = :value",
+                ExpressionAttributeValues={
+                    ":value": {"S": value},
+                },
+                ReturnValues="UPDATED_OLD"
+            )
+
+            if "Attributes" in response:
+                old_value = response["Attributes"][name]["S"]
+                logger.info(f"Changed global {name} from {old_value} to {value}")
+            else:
+                logger.info(f"Set global {name} to {value}")
+
+            return True
+        except Exception as e:
+            logger.warn(f"Failed to update globals: {e}")
+
+    @property
+    def root_user(self):
+        return self._get_global_str("RootUser")
+
+    def set_root_user(self, value):
+        return self._set_global_str("RootUser", value)
+
+    @property
+    def default_quiz_id(self):
+        return self._get_global_str("DefaultQuizId")
+
+    def set_default_quiz_id(self, value):
+        return self._set_global_str("DefaultQuizId", value)
+
     def quiz_access(self, quiz_id):
         return DynamoDbQuiz(quiz_id, self.client)
 
@@ -90,40 +147,6 @@ class DynamoDbStorage:
             )
         except Exception as e:
             logger.warn(f"Failed to clear quiz for connection {connection}: {e}")
-
-    def set_default_quiz_id(self, quiz_id):
-        try:
-            response = self.client.put_item(
-                TableName=Config.MAIN_TABLE,
-                Item={
-                    "PKEY": {"S": f"DefaultQuiz"},
-                    "SKEY": {"S": "Instance"},
-                    "QuizId": {"S": quiz_id}
-                },
-                ReturnValues="ALL_OLD"
-            )
-
-            if "Attributes" in response:
-                old_quiz_id = response["Attributes"]["QuizId"]["S"]
-                logger.warn(f"Changed default quiz from {old_quiz_id} to {quiz_id}")
-            return True
-        except Exception as e:
-            logger.warn(f"Failed to change default quiz: {e}")
-
-    def get_default_quiz_id(self):
-        try:
-            response = self.client.get_item(
-                TableName=Config.MAIN_TABLE,
-                Key={
-                    "PKEY": {"S": f"DefaultQuiz"},
-                    "SKEY": {"S": "Instance"},
-                }
-            )
-
-            if "Item" in response:
-                return response["Item"]["QuizId"]["S"]
-        except Exception as e:
-            logger.warn(f"Failed to get default quiz: {e}")
 
 
 def question_from_item(item, author_id=None):
