@@ -3,7 +3,7 @@ import json
 import random
 from typing import Optional
 from BaseMessageHandler import (BaseMessageHandler, ErrorCode, HandlerException,
-                                error_message, ok_message, status_message)
+                                error_message, ok_message)
 from Common import Config, ClientRole, Question, create_id
 
 
@@ -136,17 +136,28 @@ class QuizMessageHandler(BaseMessageHandler):
                 "broadcasting %s to %d clients", message, len(tasks))
             await asyncio.wait(tasks)
 
-    async def send_status_message(self):
-        await self.broadcast(status_message({
-            "host_present": any(client_id == self.quiz.host_id
-                                for client_id in self.quiz.clients.values()),
+    async def send_status_message(self, client_id=None):
+        if client_id is None:
+            client_id = self.quiz.get_client_id(self.connection)
+        if client_id is None:
+            raise HandlerException("Client ID missing", ErrorCode.MissingField)
+
+        if self.get_role(client_id) != ClientRole.Host:
+            self.check_is_root(client_id)
+
+        await self.send_message(json.dumps({
+            "type": "status",
+            "quiz_id": self.quiz.quiz_id,
+            "host_id": self.quiz.host_id,
+            "num_host_connections": sum(1 for client_id in self.quiz.clients.values()
+                                        if client_id == self.quiz.host_id),
             "num_players": len(self.quiz.players),
             "num_players_present": sum(1 for client_id in self.quiz.clients.values()
                                        if client_id in self.quiz.players),
-            "question_pool_size": len(self.quiz.questions_pool()),
+            "num_pool_questions": len(self.quiz.questions_pool()),
             "question_id": self.quiz.question_id,
             "is_question_open": self.quiz.is_question_open,
-        }), skip_roles=[ClientRole.Player])
+        }))
 
     async def notify_host(self, message_type, fields):
         # Use broadcast as host may have multiple connection open
@@ -468,7 +479,7 @@ class QuizMessageHandler(BaseMessageHandler):
             return await self.connect(msg["client_id"])
 
         if cmd == "get-status":
-            return await self.send_status_message()
+            return await self.send_status_message(msg.get("client_id"))
 
         if cmd == "set-pool-question":
             return await self.set_pool_question(msg["question"], msg["choices"], msg["answer"])
