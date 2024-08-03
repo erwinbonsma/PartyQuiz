@@ -155,14 +155,14 @@ export function HostQuiz({ websocket, quizId, hostId, observe }) {
 
     return (<Tab.Container className="HostQuiz" defaultActiveKey="lobby" activeKey={currentTab} onSelect={onSelect}>
         <Row>
-            <Col lg={9}>
+            <Col xs={9}>
                 <Nav variant="tabs" defaultActiveKey="lobby">
                     <Nav.Item><Nav.Link eventKey="lobby">Lobby</Nav.Link></Nav.Item>
                     <Nav.Item><Nav.Link eventKey="question">Question</Nav.Link></Nav.Item>
                     <Nav.Item><Nav.Link eventKey="scores">Scores</Nav.Link></Nav.Item>
                 </Nav>
             </Col>
-            <Col lg={3}>Quiz ID: {quizId}</Col>
+            <Col xs={3}>Quiz ID: {quizId}</Col>
         </Row>
         <Row>
             <Tab.Content>
