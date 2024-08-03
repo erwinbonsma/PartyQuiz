@@ -332,12 +332,12 @@ class QuizMessageHandler(BaseMessageHandler):
     async def get_pool_question(self):
         client_id = self.check_role(ClientRole.Player)
 
-        question = self.quiz.get_pool_question(client_id)
-        if question is not None:
-            await self.send_message(json.dumps({
-                "type": "pool-question",
-                "question": question.asdict(strip_answer=False),
-            }))
+        if (question := self.quiz.get_pool_question(client_id)) is None:
+            raise HandlerException("No question found", ErrorCode.EmptyResult)
+
+        await self.send_message(ok_message({
+            "question": question.asdict(strip_answer=False),
+        }))
 
     async def get_pool_questions(self):
         self.check_role(ClientRole.Host)
