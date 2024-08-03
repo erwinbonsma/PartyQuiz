@@ -354,7 +354,7 @@ class DynamoDbQuiz:
                 }
             )
             logger.info(f"{client_id=}, {response=}")
-            if (item := response.get("Item")) is not None:
+            if (item := response.get("Item")):
                 return question_from_item(item, author_id=client_id)
         except Exception as e:
             logger.warn(f"Failed to get pool question of {client_id} for Quiz {self.quiz_id}: {e}")
@@ -383,17 +383,16 @@ class DynamoDbQuiz:
 
     def get_question(self, question_id) -> Optional[Question]:
         try:
-            response = self.client.query(
+            response = self.client.get_item(
                 TableName=Config.MAIN_TABLE,
-                KeyConditionExpression="PKEY = :pkey and SKEY = :skey",
-                ExpressionAttributeValues={
-                    ":pkey": {"S": f"Questions#{self.quiz_id}"},
-                    ":skey": {"S": str(question_id)},
+                Key={
+                    "PKEY": {"S": f"Questions#{self.quiz_id}"},
+                    "SKEY": {"S": str(question_id)},
                 }
             )
 
-            if response["Items"]:
-                return question_from_item(response["Items"][0])
+            if (item := response.get("Item")):
+                return question_from_item(item)
         except Exception as e:
             logger.warn(f"Failed to get question {question_id} for Quiz {self.quiz_id}: {e}")
 
