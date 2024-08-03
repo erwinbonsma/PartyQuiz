@@ -31,3 +31,19 @@ export function getConfigSettings(document, name) {
     return Array.from(document.querySelectorAll(`meta[name='${name}']`)
                      ).map((v) => v.getAttribute('content'));
 }
+
+export function addToSet(elems, elem) {
+    const newElems = new Set(elems);
+    newElems.add(elem);
+    return newElems;
+}
+
+export function removeFromSet(elems, elem) {
+    const newElems = new Set(elems);
+    newElems.delete(elem);
+    return newElems;
+}
+
+export function isNotEmpty(elems) {
+    return (elems.size || elems.length) > 0;
+}

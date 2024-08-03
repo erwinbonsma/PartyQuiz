@@ -12,13 +12,14 @@ import { PlayerBadge } from './PlayerBadge';
 export function QuizQuestion({
     websocket, quizId, players, poolQuestions, questions, questionId, isQuestionOpen, answers, observe
 }) {
-
-    console.info({ players, poolQuestions, questions, answers, observe });
     const questionAuthors = Object.fromEntries(Object.entries(questions).map(
         ([_, v]) => [v.author_id, true]
     ));
     const availableQuestions = Object.values(poolQuestions).filter((question) => (
-        !questionAuthors[question.author_id] && players[question.author_id].online
+        // Question by author should not already have been asked
+        !questionAuthors[question.author_id]
+        // Author should be online
+        && players[question.author_id].connections.length > 0
     ));
 
     const closeQuestion = () => {

@@ -84,7 +84,7 @@ export function HostApp() {
 
     return (<div className="HostApp p-3">
         { joinedQuiz
-        ? <HostQuiz websocket={websocket} quizId={quizId} observe={observe} />
+        ? <HostQuiz websocket={websocket} quizId={quizId} hostId={hostId} observe={observe} />
         : <Stack gap={3} className="col-md-5 mx-auto">
             <CreateQuizForm websocket={websocket} onCreatedQuiz={onCreatedQuiz} />
             <JoinQuizForm websocket={websocket} quizId={quizId} clientId={hostId}

@@ -5,12 +5,15 @@ import Nav from 'react-bootstrap/Nav';
 import Row from 'react-bootstrap/Row';
 import Tab from 'react-bootstrap/Tab';
 
+import { removeFromSet, addToSet } from '../utils';
+
 import { QuizScores } from './QuizScores';
 import { PlayerLobby } from './PlayerLobby';
 import { QuizQuestion } from './QuizQuestion';
 
-export function HostQuiz({ websocket, quizId, observe }) {
+export function HostQuiz({ websocket, quizId, hostId, observe }) {
     const [players, setPlayers] = useState({});
+    const [hostConnections, setHostConnections] = useState([]);
     const [poolQuestions, setPoolQuestions] = useState({});
     const [questions, setQuestions] = useState({});
     const [answers, setAnswers] = useState({});
@@ -18,13 +21,16 @@ export function HostQuiz({ websocket, quizId, observe }) {
     const [isQuestionOpen, setIsQuestionOpen] = useState(false);
     const [currentTab, setCurrentTab] = useState("lobby");
 
+    console.info({ players, poolQuestions, questions, answers, observe, hostConnections });
+
     useEffect(() => {
         const messageHandler = (event) => {
             const msg = JSON.parse(event.data);
 
             console.info(msg);
-            if (msg.type === "players") {
+            if (msg.type === "clients") {
                 setPlayers(msg.players);
+                setHostConnections(msg.host_connections);
             }
             if (msg.type === "pool-questions") {
                 setPoolQuestions(msg.questions);
@@ -41,23 +47,35 @@ export function HostQuiz({ websocket, quizId, observe }) {
             if (msg.type === "player-registered") {
                 setPlayers(
                     players => ({ ...players, [msg.client_id]: {
-                        name: msg.player_name, avatar: msg.avatar, online: false
+                        name: msg.player_name, avatar: msg.avatar, connections: []
                     }})
                 );
             }
-            if (msg.type === "player-connected") {
-                setPlayers(
-                    players => ({
-                        ...players,
-                        [msg.client_id]: { ...players[msg.client_id], online: true }})
-                );
+            if (msg.type === "client-connected") {
+                if (msg.client_id === hostId) {
+                    setHostConnections(c => addToSet(c, msg.connection));
+                } else {
+                    setPlayers(
+                        players => ({
+                            ...players,
+                            [msg.client_id]: {
+                                ...players[msg.client_id],
+                                connections: addToSet(players[msg.client_id].connections, msg.connection) }})
+                    );
+                }
             }
-            if (msg.type === "player-disconnected") {
-                setPlayers(
-                    players => ({
-                        ...players,
-                        [msg.client_id]: { ...players[msg.client_id], online: false }})
-                );
+            if (msg.type === "client-disconnected") {
+                if (msg.client_id === hostId) {
+                    setHostConnections(c => removeFromSet(c, msg.connection));
+                } else {
+                    setPlayers(
+                        players => ({
+                            ...players,
+                            [msg.client_id]: {
+                                ...players[msg.client_id],
+                                connections: removeFromSet(players[msg.client_id].connections, msg.connection) }})
+                    );
+                }
             }
             if (msg.type === "pool-question-updated") {
                 setPoolQuestions(
@@ -95,7 +113,7 @@ export function HostQuiz({ websocket, quizId, observe }) {
         websocket.addEventListener('message', messageHandler);
 
         websocket.send(JSON.stringify({
-			action: "get-players",
+			action: "get-clients",
             quiz_id: quizId,
         }));
         websocket.send(JSON.stringify({
@@ -117,13 +135,18 @@ export function HostQuiz({ websocket, quizId, observe }) {
     }, []);
 
     const onSelect = (key) => {
-        websocket.send(JSON.stringify({
-			action: "notify-hosts",
-            message: {
-                type: "change-view",
-                view: key,
-            }
-        }));
+        if (hostConnections.size > 1) {
+            // There are multiple host connections. Let all switch views via back-end
+            websocket.send(JSON.stringify({
+                action: "notify-hosts",
+                message: {
+                    type: "change-view",
+                    view: key,
+                }
+            }));
+        } else {
+            setCurrentTab(key);
+        }
     }
 
     const quizProps = {

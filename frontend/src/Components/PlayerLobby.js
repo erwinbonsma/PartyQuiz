@@ -4,6 +4,7 @@ import Container from 'react-bootstrap/esm/Container';
 import Col from 'react-bootstrap/Col';
 import Row from 'react-bootstrap/Row';
 
+import { isNotEmpty } from '../utils';
 import { PlayerBadge } from './PlayerBadge';
 
 export function PlayerLobby({ websocket, players, poolQuestions }) {
@@ -30,7 +31,7 @@ export function PlayerLobby({ websocket, players, poolQuestions }) {
             <Col md={6} lg={4} xl={3} key={k} className="my-2"><PlayerBadge
                 playerName={v.name}
                 avatar={v.avatar}
-                status={{ isPresent: v.online, hasQuestion: !!poolQuestions[k] }} />
+                status={{ isPresent: isNotEmpty(v.connections), hasQuestion: !!poolQuestions[k] }} />
             </Col>
         )}</Row>
     </Container>);
