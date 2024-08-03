@@ -6,7 +6,7 @@ import Row from 'react-bootstrap/Row';
 
 import { PlayerBadge } from './PlayerBadge';
 
-export function PlayerLobby({ websocket, quizId, players, poolQuestions, questions }) {
+export function PlayerLobby({ websocket, players, poolQuestions }) {
     const [latestQuestion, setLatestQuestion] = useState();
 
     useEffect(() => {
