@@ -12,6 +12,7 @@ import { JoinQuizForm } from './Components/JoinQuizForm';
 export function HostApp() {
     const [hostId, setHostId] = useState();
     const [quizId, setQuizId] = useState();
+    const [observe, setObserve] = useState(false);
     const [joinedQuiz, setJoinedQuiz] = useState(false);
 	const [errorMessage, setErrorMessage] = useState();
 	const [websocket, setWebsocket] = useState();
@@ -81,16 +82,17 @@ export function HostApp() {
 		}));
     };
 
-    const onJoinedQuiz = ({ quizId, clientId }) => {
-        console.info(`Joined quiz ${quizId} as host ${clientId}`);
+    const onJoinedQuiz = ({ quizId, clientId, observe }) => {
+        console.info(`Joined quiz ${quizId} as host ${clientId} (observe=${observe})`);
         setQuizId(quizId);
         setHostId(clientId);
+        setObserve(observe);
         setJoinedQuiz(true);
     }
 
     return (<div className="HostApp p-3">
         { joinedQuiz
-        ? <HostQuiz websocket={websocket} quizId={quizId} />
+        ? <HostQuiz websocket={websocket} quizId={quizId} observe={observe} />
         : <Stack gap={3} className="col-md-5 mx-auto">
             <Button className="mx-2" onClick={createQuiz}>Create Quiz</Button>
             <JoinQuizForm websocket={websocket} quizId={quizId} clientId={hostId}

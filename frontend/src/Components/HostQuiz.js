@@ -9,13 +9,14 @@ import { QuizScores } from './QuizScores';
 import { PlayerLobby } from './PlayerLobby';
 import { QuizQuestion } from './QuizQuestion';
 
-export function HostQuiz({ websocket, quizId }) {
+export function HostQuiz({ websocket, quizId, observe }) {
     const [players, setPlayers] = useState({});
     const [poolQuestions, setPoolQuestions] = useState({});
     const [questions, setQuestions] = useState({});
     const [answers, setAnswers] = useState({});
     const [questionId, setQuestionId] = useState(0);
     const [isQuestionOpen, setIsQuestionOpen] = useState(false);
+    const [currentTab, setCurrentTab] = useState("lobby");
 
     useEffect(() => {
         const messageHandler = (event) => {
@@ -85,6 +86,10 @@ export function HostQuiz({ websocket, quizId }) {
                 setQuestionId(msg.question_id);  // Should not be needed, but no harm
                 setIsQuestionOpen(false);
             }
+
+            if (msg.type === "change-view") {
+                setCurrentTab(msg.view);
+            }
         };
 
         websocket.addEventListener('message', messageHandler);
@@ -111,11 +116,21 @@ export function HostQuiz({ websocket, quizId }) {
         }
     }, []);
 
+    const onSelect = (key) => {
+        websocket.send(JSON.stringify({
+			action: "notify-hosts",
+            message: {
+                type: "change-view",
+                view: key,
+            }
+        }));
+    }
+
     const quizProps = {
-        quizId, players, poolQuestions, questions, questionId, isQuestionOpen, answers
+        quizId, players, poolQuestions, questions, questionId, isQuestionOpen, answers, observe
     };
 
-    return (<Tab.Container className="HostQuiz" defaultActiveKey="lobby">
+    return (<Tab.Container className="HostQuiz" defaultActiveKey="lobby" activeKey={currentTab} onSelect={onSelect}>
         <Row>
             <Col lg={9}>
                 <Nav variant="tabs" defaultActiveKey="lobby">

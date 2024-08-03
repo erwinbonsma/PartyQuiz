@@ -10,10 +10,10 @@ import { AnswerChoice } from './AnswerChoice';
 import { PlayerBadge } from './PlayerBadge';
 
 export function QuizQuestion({
-    websocket, quizId, players, poolQuestions, questions, questionId, isQuestionOpen, answers
+    websocket, quizId, players, poolQuestions, questions, questionId, isQuestionOpen, answers, observe
 }) {
 
-    console.info({ players, poolQuestions, questions, answers });
+    console.info({ players, poolQuestions, questions, answers, observe });
     const questionAuthors = Object.fromEntries(Object.entries(questions).map(
         ([_, v]) => [v.author_id, true]
     ));
@@ -82,10 +82,10 @@ export function QuizQuestion({
                 })}
             </Container>
         </>}
-        { isQuestionOpen
-        ? <Button onClick={closeQuestion}>Close Question</Button>
-        : <Button onClick={gotoNextQuestion} disabled={availableQuestions.length === 0}>
-            {nextQuestionLabel}
-        </Button>}
+        { !observe && ( isQuestionOpen
+            ? <Button onClick={closeQuestion}>Close Question</Button>
+            : <Button onClick={gotoNextQuestion} disabled={availableQuestions.length === 0}>
+                {nextQuestionLabel}
+            </Button>)}
     </div>);
 }
