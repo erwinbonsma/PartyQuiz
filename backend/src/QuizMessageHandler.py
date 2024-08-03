@@ -74,13 +74,13 @@ def create_question(author_id, question, choices, answer):
 class QuizMessageHandler(BaseMessageHandler):
 
     def check_is_root(self, client_id):
-        if (root_user := self.db.root_user) and client_id != root_user:
+        if (root_user := self.globals.root_user) and client_id != root_user:
             raise HandlerException("Root access required", ErrorCode.NotAllowed)
 
     async def set_root_user(self, user, old_user=None):
         self.check_is_root(old_user)
 
-        if not self.db.set_root_user(user):
+        if not self.globals.set_root_user(user):
             raise HandlerException(
                 "Failed to update root user", ErrorCode.InternalServerError)
 
@@ -89,7 +89,7 @@ class QuizMessageHandler(BaseMessageHandler):
     async def set_default_quiz(self, quiz_id, client_id):
         self.check_is_root(client_id)
 
-        if not self.db.set_default_quiz_id(quiz_id):
+        if not self.globals.set_default_quiz_id(quiz_id):
             raise HandlerException(
                 "Failed to update default quiz", ErrorCode.InternalServerError)
 
@@ -101,6 +101,12 @@ class QuizMessageHandler(BaseMessageHandler):
         if not self.quiz.exists():
             raise HandlerException(
                 f"Quiz {quiz_id} not found", ErrorCode.QuizNotFound)
+
+    @property
+    def globals(self):
+        if not self._globals:
+            self._globals = self.db.globals_access()
+        return self._globals
 
     def get_role(self, client_id) -> Optional[ClientRole]:
         if self.quiz.host_id == client_id:
@@ -168,7 +174,7 @@ class QuizMessageHandler(BaseMessageHandler):
 
         if make_default:
             self.check_is_root(host_id)
-            if not self.db.set_default_quiz_id(quiz_id):
+            if not self.globals.set_default_quiz_id(quiz_id):
                 raise HandlerException(
                     "Failed to make quiz default", ErrorCode.InternalServerError)
 
@@ -227,7 +233,7 @@ class QuizMessageHandler(BaseMessageHandler):
         check_string_value("name", player_name, Config.RANGE_NAME_LENGTH)
 
         if quiz_id is None:
-            if (quiz_id := self.db.default_quiz_id) is None:
+            if (quiz_id := self.globals.default_quiz_id) is None:
                 raise HandlerException(
                     "Failed to get default quiz",
                     ErrorCode.InternalServerError)
@@ -415,6 +421,8 @@ class QuizMessageHandler(BaseMessageHandler):
         }))
 
     async def _handle_message(self, msg):
+        self._globals = None  # Cache only for duration of request
+
         msg = MessageWrapper(msg)
 
         cmd = msg["action"]

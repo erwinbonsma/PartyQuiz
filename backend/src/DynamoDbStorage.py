@@ -19,62 +19,8 @@ class DynamoDbStorage:
     def __init__(self, client=DEFAULT_CLIENT):
         self.client = client
 
-    @functools.cache
-    def _globals(self) -> dict:
-        try:
-            response = self.client.get_item(
-                TableName=Config.MAIN_TABLE,
-                Key={
-                    "PKEY": {"S": "Globals"},
-                    "SKEY": {"S": "Instance"},
-                }
-            )
-
-            return response.get("Item", {})
-        except Exception as e:
-            logger.warn(f"Failed to get globals: {e}")
-
-    def _get_global_str(self, name: str) -> Optional[str]:
-        return self._globals().get(name, {}).get("S")
-
-    def _set_global_str(self, name: str, value: str):
-        try:
-            response = self.client.update_item(
-                TableName=Config.MAIN_TABLE,
-                Key={
-                    "PKEY": {"S": "Globals"},
-                    "SKEY": {"S": "Instance"}
-                },
-                UpdateExpression=f"SET {name} = :value",
-                ExpressionAttributeValues={
-                    ":value": {"S": value},
-                },
-                ReturnValues="UPDATED_OLD"
-            )
-
-            if "Attributes" in response:
-                old_value = response["Attributes"][name]["S"]
-                logger.info(f"Changed global {name} from {old_value} to {value}")
-            else:
-                logger.info(f"Set global {name} to {value}")
-
-            return True
-        except Exception as e:
-            logger.warn(f"Failed to update globals: {e}")
-
-    @property
-    def root_user(self):
-        return self._get_global_str("RootUser")
-
-    def set_root_user(self, value):
-        return self._set_global_str("RootUser", value)
-
-    @property
-    def default_quiz_id(self):
-        return self._get_global_str("DefaultQuizId")
-
-    def set_default_quiz_id(self, value):
-        return self._set_global_str("DefaultQuizId", value)
+    def globals_access(self):
+        return Globals(self.client)
 
     def quiz_access(self, quiz_id):
         return DynamoDbQuiz(quiz_id, self.client)
@@ -156,6 +102,73 @@ def question_from_item(item, author_id=None):
         choices=[choice["S"] for choice in item["Choices"]["L"]],
         answer=int(item["Answer"]["N"])
     )
+
+
+class Globals:
+
+    def __init__(self, client):
+        self.client = client
+
+    @functools.cache
+    def _globals(self) -> dict:
+        try:
+            response = self.client.get_item(
+                TableName=Config.MAIN_TABLE,
+                Key={
+                    "PKEY": {"S": "Globals"},
+                    "SKEY": {"S": "Instance"},
+                }
+            )
+
+            return response.get("Item", {})
+        except Exception as e:
+            logger.warn(f"Failed to get globals: {e}")
+
+    def _get_global_str(self, name: str) -> Optional[str]:
+        value = self._globals().get(name, {}).get("S")
+        logger.info(f"Retrieved global {name} = {value}")
+        return value
+
+    def _set_global_str(self, name: str, value: str):
+        try:
+            response = self.client.update_item(
+                TableName=Config.MAIN_TABLE,
+                Key={
+                    "PKEY": {"S": "Globals"},
+                    "SKEY": {"S": "Instance"}
+                },
+                UpdateExpression=f"SET {name} = :value",
+                ExpressionAttributeValues={
+                    ":value": {"S": value},
+                },
+                ReturnValues="UPDATED_OLD"
+            )
+
+            if "Attributes" in response:
+                old_value = response["Attributes"][name]["S"]
+                logger.info(f"Changed global {name} from {old_value} to {value}")
+            else:
+                logger.info(f"Set global {name} to {value}")
+
+            self._globals()[name] = value
+
+            return True
+        except Exception as e:
+            logger.warn(f"Failed to update globals: {e}")
+
+    @property
+    def root_user(self):
+        return self._get_global_str("RootUser")
+
+    def set_root_user(self, value):
+        return self._set_global_str("RootUser", value)
+
+    @property
+    def default_quiz_id(self):
+        return self._get_global_str("DefaultQuizId")
+
+    def set_default_quiz_id(self, value):
+        return self._set_global_str("DefaultQuizId", value)
 
 
 class DynamoDbQuiz:
