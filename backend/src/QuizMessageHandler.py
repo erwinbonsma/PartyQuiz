@@ -158,7 +158,7 @@ class QuizMessageHandler(BaseMessageHandler):
             "num_players": len(self.quiz.players),
             "num_players_present": sum(1 for client_id in self.quiz.clients.values()
                                        if client_id in self.quiz.players),
-            "num_pool_questions": len(self.quiz.questions_pool()),
+            "num_pool_questions": len(self.quiz.get_pool_questions()),
             "question_id": self.quiz.question_id,
             "is_question_open": self.quiz.is_question_open,
         }))
@@ -257,11 +257,10 @@ class QuizMessageHandler(BaseMessageHandler):
         """ Register for a quiz (as a player) """
         check_string_value("name", player_name, Config.RANGE_NAME_LENGTH)
 
-        if quiz_id is None:
-            if (quiz_id := self.globals.default_quiz_id) is None:
-                raise HandlerException(
-                    "Failed to get default quiz",
-                    ErrorCode.InternalServerError)
+        if quiz_id is None and (quiz_id := self.globals.default_quiz_id) is None:
+            raise HandlerException(
+                "Failed to get default quiz",
+                ErrorCode.InternalServerError)
 
         self.fetch_quiz(quiz_id)
         if len(self.quiz.players) >= Config.MAX_PLAYERS_PER_QUIZ:
@@ -330,13 +329,23 @@ class QuizMessageHandler(BaseMessageHandler):
             "question": question_obj.asdict(strip_answer=False)
         })
 
+    async def get_pool_question(self):
+        client_id = self.check_role(ClientRole.Player)
+
+        question = self.quiz.get_pool_question(client_id)
+        if question is not None:
+            await self.send_message(json.dumps({
+                "type": "pool-question",
+                "question": question.asdict(strip_answer=False),
+            }))
+
     async def get_pool_questions(self):
         self.check_role(ClientRole.Host)
 
         return await self.send_message(json.dumps({
             "type": "pool-questions",
             "questions": {
-                q.author_id: q.asdict(strip_answer=False) for q in self.quiz.questions_pool()
+                q.author_id: q.asdict(strip_answer=False) for q in self.quiz.get_pool_questions()
             }
         }))
 
@@ -419,7 +428,8 @@ class QuizMessageHandler(BaseMessageHandler):
             #
             # Note: not checking if player already answered. That will be done
             # if/when player answers.
-            question = self.quiz.get_question(self.quiz.question_id)
+            if (question := self.quiz.get_question(self.quiz.question_id)) is None:
+                raise HandlerException("Question not found", ErrorCode.InternalServerError)
 
             await self.send_message(json.dumps({
                 "type": "question-opened",
@@ -504,6 +514,8 @@ class QuizMessageHandler(BaseMessageHandler):
 
         if cmd == "set-pool-question":
             return await self.set_pool_question(msg["question"], msg["choices"], msg["answer"])
+        if cmd == "get-pool-question":
+            return await self.get_pool_question()
         if cmd == "get-pool-questions":
             return await self.get_pool_questions()
 

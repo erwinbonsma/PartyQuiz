@@ -70,6 +70,11 @@ The host can view the pool questions (to use it as source for the quiz questions
 { "action": "get-pool-questions" }
 ```
 
+A player can retrieve its own pool question (to revise it or to check if it submitted a question already):
+```
+{ "action": "get-pool-question" }
+```
+
 ## Running the quiz
 
 The host can open a question:

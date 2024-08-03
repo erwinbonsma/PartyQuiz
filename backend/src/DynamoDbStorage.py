@@ -328,7 +328,7 @@ class DynamoDbQuiz:
             logger.warn(
                 f"Failed to set question for Client {question.author_id} and Quiz {self.quiz_id}: {e}")
 
-    def questions_pool(self) -> list[Question]:
+    def get_pool_questions(self) -> list[Question]:
         try:
             response = self.client.query(
                 TableName=Config.MAIN_TABLE,
@@ -342,7 +342,22 @@ class DynamoDbQuiz:
                 if (skey := item["SKEY"]["S"]).startswith("ClientId#")
             ]
         except Exception as e:
-            logger.warn(f"Failed to get questions for Quiz {self.quiz_id}: {e}")
+            logger.warn(f"Failed to get pool questions for Quiz {self.quiz_id}: {e}")
+
+    def get_pool_question(self, client_id) -> Optional[Question]:
+        try:
+            response = self.client.get_item(
+                TableName=Config.MAIN_TABLE,
+                Key={
+                    "PKEY": {"S": f"Pool#{self.quiz_id}"},
+                    "SKEY": {"S": f"ClientId#{client_id}"},
+                }
+            )
+            logger.info(f"{client_id=}, {response=}")
+            if (item := response.get("Item")) is not None:
+                return question_from_item(item, author_id=client_id)
+        except Exception as e:
+            logger.warn(f"Failed to get pool question of {client_id} for Quiz {self.quiz_id}: {e}")
 
     def set_question(self, question: Question, question_id: int):
         try:
@@ -366,7 +381,7 @@ class DynamoDbQuiz:
             logger.warn(
                 f"Failed to set question {question_id} for Quiz {self.quiz_id}: {e}")
 
-    def get_question(self, question_id) -> Question:
+    def get_question(self, question_id) -> Optional[Question]:
         try:
             response = self.client.query(
                 TableName=Config.MAIN_TABLE,
@@ -380,7 +395,7 @@ class DynamoDbQuiz:
             if response["Items"]:
                 return question_from_item(response["Items"][0])
         except Exception as e:
-            logger.warn(f"Failed to get questions for Quiz {self.quiz_id}: {e}")
+            logger.warn(f"Failed to get question {question_id} for Quiz {self.quiz_id}: {e}")
 
     def get_questions(self) -> dict[str, Question]:
         try:
