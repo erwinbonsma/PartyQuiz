@@ -15,7 +15,11 @@ export function CreateQuizForm({ websocket, onCreatedQuiz }) {
 
     const handleCreate = (data) => {
         handleResponse(websocket, (msg) => {
-            onCreatedQuiz({ quizId: msg.quiz_id, hostId: msg.host_id })},
+            onCreatedQuiz({
+                quizId: msg.quiz_id,
+                hostId: msg.host_id,
+                isDefault: msg.is_default,
+            })},
             (msg) => {
                 setCreateError(msg.details || `Error code ${msg.error_code}`)
             });
@@ -23,7 +27,7 @@ export function CreateQuizForm({ websocket, onCreatedQuiz }) {
         const msg = {
 			action: "create-quiz",
             quiz_name: config.QUIZ_NAME,
-            make_default: true,
+            try_make_default: true,
 		}
         if (data.hostId) {
             msg.host_id = data.hostId;
@@ -35,8 +39,8 @@ export function CreateQuizForm({ websocket, onCreatedQuiz }) {
     return <>
         <Form noValidate onSubmit={handleSubmit(handleCreate)} className="mx-2">
             <Form.Group as={Row} className="mb-3">
-                <Form.Label column sm={5}>Host ID</Form.Label>
-                <Col sm={7}>
+                <Form.Label column sm={3}>Host ID</Form.Label>
+                <Col sm={6}>
                     <Form.Control type="input"
                     isInvalid={!!errors.hostId}
                     {...register("hostId", { maxLength: 12 })}/>

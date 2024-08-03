@@ -8,14 +8,17 @@ import Row from 'react-bootstrap/Row';
 
 import { handleResponse } from '../utils';
 
-export function JoinQuizForm({ websocket, clientId, quizId, onJoinedQuiz }) {
-    const {register, handleSubmit, setValue, formState: { errors }} = useForm();
+export function JoinQuizForm({ websocket, clientId, quizId, defaultQuizId, onJoinedQuiz }) {
+    const {register, handleSubmit, setValue, watch, formState: { errors }} = useForm();
     const [joinError, setJoinError] = useState();
 
     useEffect(() => {
         setValue("clientId", clientId);
         setValue("quizId", quizId);
     }, [clientId, quizId]);
+
+    const watchedQuizId = watch("quizId");
+    const isDefault = defaultQuizId && (watchedQuizId === defaultQuizId);
 
     const handleJoin = (asObserver) => ((data) => {
         console.info("Joining quiz");
@@ -40,8 +43,8 @@ export function JoinQuizForm({ websocket, clientId, quizId, onJoinedQuiz }) {
     return <>
         <Form noValidate className="mx-2">
             <Form.Group as={Row} className="mb-3">
-                <Form.Label column sm={5}>Client ID</Form.Label>
-                <Col sm={7}>
+                <Form.Label column sm={3}>Client ID</Form.Label>
+                <Col sm={6}>
                     <Form.Control type="input"
                     isInvalid={!!errors.clientId}
                     {...register("clientId", { required: true })}/>
@@ -50,9 +53,9 @@ export function JoinQuizForm({ websocket, clientId, quizId, onJoinedQuiz }) {
                     )}
                 </Col>
             </Form.Group>
-            <Form.Group as={Row} className="mb-3">
-                <Form.Label column sm={5}>Quiz ID</Form.Label>
-                <Col sm={7}>
+            <Form.Group as={Row} className="mb-3 align-items-center">
+                <Form.Label column sm={3}>Quiz ID</Form.Label>
+                <Col sm={6}>
                     <Form.Control type="input"
                     isInvalid={!!errors.quizId}
                     {...register("quizId", { required: true })}/>
@@ -60,6 +63,7 @@ export function JoinQuizForm({ websocket, clientId, quizId, onJoinedQuiz }) {
                         <Form.Control.Feedback type="invalid">This is required</Form.Control.Feedback>
                     )}
                 </Col>
+                { isDefault && <Col sm={2}>(default)</Col> }
             </Form.Group>
             <Row className="justify-content-md-center">
                 <Col md="auto">
