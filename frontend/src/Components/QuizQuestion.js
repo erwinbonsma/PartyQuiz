@@ -47,9 +47,9 @@ export function QuizQuestion({
         { q && <>
             <Container className="p-3">
                 <Row>
-                    <Col lg={3} />
-                    <Col lg={6} ><h1>Question {questionId}</h1></Col>
-                    <Col lg={3} ><PlayerBadge
+                    <Col md={4} lg={3}/>
+                    <Col md={4} lg={6} ><h1>Question {questionId}</h1></Col>
+                    <Col md={4} lg={3} ><PlayerBadge
                                   playerName={ players[q.author_id].name }
                                   avatar={ players[q.author_id].avatar } /></Col>
                 </Row>

@@ -12,16 +12,16 @@ export function ScoreTable({ players, scores, maxSize, header }) {
     return (<Container className="ScoreTable">
         <Row><h2>{header}</h2></Row>
         <Row className="m-2">
-            <Col md={1}></Col>
-            <Col md={8}>Player</Col>
-            <Col md={3}>Score</Col>
+            <Col xs={1}></Col>
+            <Col xs={8}>Player</Col>
+            <Col xs={3}>Score</Col>
         </Row>
         { topScores.map(([playerId, score], idx) =>
             <Row key={playerId} className="m-2 align-items-center">
-                <Col md={1}>{idx + 1}.</Col>
-                <Col md={8}><PlayerBadge playerName={players[playerId]?.name}
+                <Col xs={1}>{idx + 1}.</Col>
+                <Col xs={8}><PlayerBadge playerName={players[playerId]?.name}
                              avatar={players[playerId]?.avatar}/></Col>
-                <Col md={3}>{score}</Col>
+                <Col xs={3}>{score}</Col>
             </Row>
         )}
     </Container>);

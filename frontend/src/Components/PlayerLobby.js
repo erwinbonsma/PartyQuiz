@@ -27,7 +27,7 @@ export function PlayerLobby({ websocket, players, poolQuestions }) {
 
     return (<Container className="PlayerLobby my-3">
         <Row>{ Object.entries(players).map(([k, v]) =>
-            <Col lg={3} key={k} className="my-2"><PlayerBadge
+            <Col md={6} lg={4} xl={3} key={k} className="my-2"><PlayerBadge
                 playerName={v.name}
                 avatar={v.avatar}
                 status={{ isPresent: v.online, hasQuestion: !!poolQuestions[k] }} />
