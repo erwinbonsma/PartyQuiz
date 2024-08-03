@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 
 import Button from 'react-bootstrap/Button';
@@ -9,12 +10,23 @@ import config from '../utils/config';
 import { handleResponse, labelForChoiceIndex } from '../utils';
 
 export function SubmitQuestion({ websocket, quizId, question, enableCancel, onDone }) {
-    const {register, handleSubmit, formState: { errors }} = useForm();
+    const {register, handleSubmit, setValue, formState: { errors }} = useForm();
 
     const choices = Array(config.NUM_CHOICES).fill(0).map((_, idx) => ({
         id: idx + 1,
         label: labelForChoiceIndex(idx),
+        fieldName: `choice_${idx + 1}`
     }));
+
+    useEffect(() => {
+        if (question) {
+            setValue("question", question.question);
+            choices.map((choice, idx) => setValue(choice.fieldName, question.choices[idx]));
+            setValue("answer", question.answer);
+        } else {
+            setValue("answer", "");
+        }
+    }, [question]);
 
     const onSubmit = (data) => {
         const question = {
@@ -41,7 +53,6 @@ export function SubmitQuestion({ websocket, quizId, question, enableCancel, onDo
                 <Form.Label column sm={3} lg={2}>Question</Form.Label>
                 <Col sm={9} lg={10}>
                     <Form.Control as="textarea" rows={3}
-                     defaultValue={question?.question}
                      isInvalid={!!errors.question}
                      {...register("question", { required: true,
                                                 minLength: config.RANGE_QUESTION_LENGTH[0],
@@ -57,15 +68,14 @@ export function SubmitQuestion({ websocket, quizId, question, enableCancel, onDo
                     )}
                 </Col>
             </Form.Group>
-            { choices.map((choice, idx) => {
-                const fieldName = `choice_${choice.id}`;
+            { choices.map((choice) => {
+                const fieldName = choice.fieldName;
 
                 return <div key={choice.id}>
                     <Form.Group as={Row} className="mb-3">
                         <Form.Label column sm={3} lg={2}>Answer {choice.label}</Form.Label>
                         <Col sm={9} lg={10}>
                             <Form.Control type="input"
-                            defaultValue={question?.choices[idx]}
                             isInvalid={!!errors[fieldName]}
                             {...register(fieldName, { required: true,
                                                       minLength: config.RANGE_CHOICE_LENGTH[0],
@@ -87,11 +97,10 @@ export function SubmitQuestion({ websocket, quizId, question, enableCancel, onDo
                 <Form.Label column sm={3} lg={2}>Solution</Form.Label>
                 <Col sm={9} lg={10}>
                     <Form.Select
-                     defaultValue={question?.answer || ""}
                      isInvalid={!!errors.answer}
                      {...register("answer", { required: true, minLength: 1 })}>
                     <option disabled value="">Please select</option>
-                    { choices.map((choice, _) =>
+                    { choices.map((choice) =>
                         <option value={choice.id} key={choice.id}>Answer {choice.label}</option>)}
                     </Form.Select>
                 </Col>

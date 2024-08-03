@@ -47,3 +47,21 @@ export function removeFromSet(elems, elem) {
 export function isNotEmpty(elems) {
     return (elems.size || elems.length) > 0;
 }
+
+export function storeValue(name, value) {
+    // Let cookie lifetime default to deletion on browser closure
+    document.cookie = `${name}=${encodeURIComponent(value)};path=/`;
+}
+
+export function loadValue(name) {
+    const prefix = `${name}=`;
+    const fields = decodeURIComponent(document.cookie).split(';');
+    const values = (fields.map(v => v.trim())
+                    .filter(v => v.indexOf(prefix) == 0)
+                    .map(v => v.substring(prefix.length)));
+
+    const value = values.length > 0 ? values[0] : undefined;
+    console.info(`${name}=${value}`);
+
+    return value;
+}

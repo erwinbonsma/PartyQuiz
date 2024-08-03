@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Button from 'react-bootstrap/Button';
 
 import config from './utils/config';
+import { loadValue, storeValue } from './utils';
 import { handleResponse } from './utils';
 
 import { PlayQuiz } from './Components/PlayQuiz';
@@ -9,8 +10,8 @@ import { QuizRegistration } from './Components/QuizRegistration';
 import { SubmitQuestion } from './Components/SubmitQuestion';
 
 export function PlayerApp() {
-	const [clientId, setClientId] = useState();
-    const [quizId, setQuizId] = useState();
+	const [clientId, setClientId] = useState(useMemo(() => loadValue("clientId"), []));
+    const [quizId, setQuizId] = useState(useMemo(() => loadValue("quizId"), []));
     const [joinedQuiz, setJoinedQuiz] = useState(false);
     const [submittedQuestion, setSubmittedQuestion] = useState(false);
     const [reviseQuestion, setReviseQuestion] = useState(false);
@@ -71,6 +72,7 @@ export function PlayerApp() {
     const fetchPoolQuestion = () => {
         handleResponse(websocket, (msg) => {
             setQuestion(msg.question);
+            setSubmittedQuestion(true);
         });
 
         websocket.send(JSON.stringify({
@@ -86,6 +88,7 @@ export function PlayerApp() {
         }
 
         handleResponse(websocket, () => {
+            setErrorMessage(undefined);
             setJoinedQuiz(true);
             fetchPoolQuestion();
         });
@@ -100,6 +103,9 @@ export function PlayerApp() {
     const onRegistrationDone = (clientId, quizId) => {
         setClientId(clientId);
         setQuizId(quizId);
+
+        storeValue("clientId", clientId);
+        storeValue("quizId", quizId);
     }
     const onSubmittedQuestion = (question) => {
         setQuestion(question);
@@ -117,9 +123,9 @@ export function PlayerApp() {
                              question={question}
                              onDone={onSubmittedQuestion}
                              enableCancel={reviseQuestion} />))
-        : ( clientId
+        : ( quizId
             ? <p>Registered for quiz</p>
-            : <QuizRegistration getWebsocket={getWebsocket}
+            : <QuizRegistration getWebsocket={getWebsocket} clientId={clientId}
                onDone={onRegistrationDone} />)}
         { errorMessage
         && <><p>Error: {errorMessage}</p><Button onClick={() => setErrorMessage('')}>Retry</Button></> }
