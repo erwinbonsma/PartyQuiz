@@ -199,6 +199,12 @@ class QuizMessageHandler(BaseMessageHandler):
         """
         Connect to quiz (as host, player or observer)
         """
+        if self.get_role(client_id) is None:
+            raise HandlerException(
+                "Only host and players can connect to quiz",
+                ErrorCode.NotAllowed
+            )
+
         if not self.db.set_quiz_for_connection(self.connection, self.quiz.quiz_id):
             raise HandlerException(
                 f"Failed to link connection to Quiz {self.quiz.quiz_id}",
