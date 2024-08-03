@@ -1,21 +1,22 @@
 import boto3
 import json
 import logging
+from Common import create_id
 from DisconnectionHandler import DisconnectionHandler
 from QuizMessageHandler import QuizMessageHandler
 from DynamoDbStorage import DynamoDbStorage
 
 logger = logging.getLogger('backend.gateway')
 
+
 class LocalGateway:
     def __init__(self):
         self.db = DynamoDbStorage(
-            client = boto3.client('dynamodb', endpoint_url="http://dynamodb:8000")
+            client=boto3.client('dynamodb', endpoint_url="http://dynamodb:8000")
         )
         self.comms = self
         self.logger = logger
 
-        self.next_socket_id = 1
         self.sockets = {}
 
     async def send(self, socket_id, message):
@@ -24,9 +25,8 @@ class LocalGateway:
             await socket.send(message)
 
     async def main(self, websocket, path):
-        socket_id = str(self.next_socket_id)
+        socket_id = create_id()
         self.sockets[socket_id] = websocket
-        self.next_socket_id += 1
 
         try:
             async for message in websocket:

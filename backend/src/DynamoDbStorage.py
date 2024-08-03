@@ -253,7 +253,13 @@ class DynamoDbQuiz:
                 "ClientId": {"S": client_id},
             }
 
-            self.client.put_item(TableName=Config.MAIN_TABLE, Item=item)
+            self.client.put_item(
+                TableName=Config.MAIN_TABLE,
+                Item=item,
+                # A client should disconnect first before re-joining using an
+                # existing connection
+                ConditionExpression="attribute_not_exists(PKEY)"
+            )
 
             self.clients[connection] = client_id
 

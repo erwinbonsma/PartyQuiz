@@ -1,4 +1,5 @@
 import asyncio
+import collections
 import json
 import random
 from typing import Optional
@@ -212,8 +213,10 @@ class QuizMessageHandler(BaseMessageHandler):
 
         await self.send_message(ok_message())
 
-        if self.get_role(client_id) == ClientRole.Player:
-            await self.notify_host("player-connected", {"client_id": client_id})
+        await self.notify_host("client-connected", {
+            "client_id": client_id,
+            "connection": self.connection,
+        })
 
     async def disconnect(self):
         # Retry removal. It can fail if two (or more clients) disconnect at the same time. In that
@@ -237,8 +240,10 @@ class QuizMessageHandler(BaseMessageHandler):
 
         self.db.clear_quiz_for_connection(self.connection)
 
-        if self.get_role(client_id) == ClientRole.Player:
-            await self.notify_host("player-disconnected", {"client_id": client_id})
+        await self.notify_host("client-disconnected", {
+            "client_id": client_id,
+            "connection": self.connection,
+        })
 
     async def register(self, player_name, avatar=None, quiz_id=None):
         """ Register for a quiz (as a player) """
@@ -274,18 +279,23 @@ class QuizMessageHandler(BaseMessageHandler):
             "avatar": avatar
         })
 
-    async def get_players(self):
+    async def get_clients(self):
         self.check_role(ClientRole.Host)
 
-        client_ids = set(self.quiz.clients.values())
+        client_connections = collections.defaultdict(list)
+        for conn, client_id in self.quiz.clients.items():
+            client_connections[client_id].append(conn)
 
         return await self.send_message(json.dumps({
-            "type": "players",
-            "players": {id: {
-                **player.asdict(),
-                "online": id in client_ids
-            }
-                for id, player in self.quiz.players.items()}
+            "type": "clients",
+            "players": {
+                id: {
+                    **player.asdict(),
+                    "connections": client_connections[id]
+                }
+                for id, player in self.quiz.players.items()
+            },
+            "host_connections": client_connections[self.quiz.host_id],
         }))
 
     async def set_pool_question(self, question, choices, answer):
@@ -473,11 +483,13 @@ class QuizMessageHandler(BaseMessageHandler):
         if cmd == "notify-hosts":
             return await self.notify_hosts(msg['message'])
 
-        if cmd == "get-players":
-            return await self.get_players()
+        if cmd == "get-clients":
+            return await self.get_clients()
 
         if cmd == "connect":
             return await self.connect(msg["client_id"])
+        if cmd == "disconnect":
+            return await self.disconnect()
 
         if cmd == "get-status":
             return await self.send_status_message(msg.get("client_id"))
