@@ -149,6 +149,9 @@ class QuizMessageHandler(BaseMessageHandler):
             **fields
         }), skip_roles=[ClientRole.Player])
 
+    async def notify_hosts(self, message):
+        await self.broadcast(json.dumps(message), skip_roles=[ClientRole.Player])
+
     async def create_quiz(self, name, host_id=None, make_default=False):
         if host_id is None:
             host_id = create_id()
@@ -174,19 +177,19 @@ class QuizMessageHandler(BaseMessageHandler):
             "host_id": host_id,
         }))
 
-    async def connect(self, quiz_id, client_id):
+    async def connect(self, client_id):
         """
         Connect to quiz (as host, player or observer)
         """
-        if not self.db.set_quiz_for_connection(self.connection, quiz_id):
+        if not self.db.set_quiz_for_connection(self.connection, self.quiz.quiz_id):
             raise HandlerException(
-                f"Failed to link connection to Quiz {quiz_id}",
+                f"Failed to link connection to Quiz {self.quiz.quiz_id}",
                 ErrorCode.InternalServerError
             )
 
         if not self.quiz.add_client(self.connection, client_id):
             raise HandlerException(
-                f"Failed to add client {client_id} to Quiz {quiz_id}",
+                f"Failed to add client {client_id} to Quiz {self.quiz.quiz_id}",
                 ErrorCode.InternalServerError
             )
 
@@ -447,11 +450,14 @@ class QuizMessageHandler(BaseMessageHandler):
                                        ErrorCode.NotConnected)
         self.fetch_quiz(quiz_id)
 
+        if cmd == "notify-hosts":
+            return await self.notify_hosts(msg['message'])
+
         if cmd == "get-players":
             return await self.get_players()
 
         if cmd == "connect":
-            return await self.connect(quiz_id, msg["client_id"])
+            return await self.connect(msg["client_id"])
 
         if cmd == "get-status":
             return await self.send_status_message()
