@@ -68,13 +68,27 @@ export function PlayerApp() {
         }
 	}, [websocket, quizId, errorMessage]);
 
+    const fetchPoolQuestion = () => {
+        handleResponse(websocket, (msg) => {
+            setQuestion(msg.question);
+        });
+
+        websocket.send(JSON.stringify({
+            action: "get-pool-question",
+            quiz_id: quizId,
+        }));
+    }
+
     // Auto-join quiz (or re-join after disconnect)
     useEffect(() => {
         if (!websocket || !clientId || joinedQuiz) {
             return;
         }
 
-        handleResponse(websocket, () => setJoinedQuiz(true));
+        handleResponse(websocket, () => {
+            setJoinedQuiz(true);
+            fetchPoolQuestion();
+        });
 
         websocket.send(JSON.stringify({
 			action: "connect",

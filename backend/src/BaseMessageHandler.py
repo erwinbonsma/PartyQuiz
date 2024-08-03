@@ -16,6 +16,7 @@ class ErrorCode(IntEnum):
     MissingField = 6
     NotConnected = 7
     AlreadyAnswered = 8
+    EmptyResult = 9
     InternalServerError = 255
 
 
