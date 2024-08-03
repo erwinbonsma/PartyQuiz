@@ -4,7 +4,7 @@ import Col from 'react-bootstrap/Col';
 import ProgressBar from 'react-bootstrap/ProgressBar';
 import Row from 'react-bootstrap/Row';
 
-import { labelForChoiceIndex } from '../utils';
+import { labelForChoiceIndex, isNotEmpty } from '../utils';
 
 import { AnswerChoice } from './AnswerChoice';
 import { PlayerBadge } from './PlayerBadge';
@@ -19,7 +19,7 @@ export function QuizQuestion({
         // Question by author should not already have been asked
         !questionAuthors[question.author_id]
         // Author should be online
-        && players[question.author_id].connections.length > 0
+        && isNotEmpty(players[question.author_id].connections)
     ));
 
     const closeQuestion = () => {
