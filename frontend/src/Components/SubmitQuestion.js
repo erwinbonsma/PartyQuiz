@@ -17,8 +17,6 @@ export function SubmitQuestion({ websocket, quizId, question, enableCancel, onDo
     }));
 
     const onSubmit = (data) => {
-        console.info(data);
-
         const question = {
             question: data.question,
             choices: choices.map((choice, _) => data[`choice_${choice.id}`]),
