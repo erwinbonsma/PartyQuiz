@@ -7,7 +7,10 @@ import { ScoreTable } from './ScoreTable';
 
 function questionScoreFormula(numCorrect, numAnswers) {
     if (numAnswers < config.QSCORE_MIN_ANSWERS) {
-        return 0;
+        // Score based on expected score when there are not enough answers.
+        // This is more fair when the number of submitted answers fluctuates
+        // around the lower-limit.
+        return Math.round(config.QSCORE_MAX * 3 / 8);
     }
 
     const targetRatio = 5 / 8;
