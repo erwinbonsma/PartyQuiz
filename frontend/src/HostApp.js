@@ -4,8 +4,8 @@ import Button from 'react-bootstrap/Button';
 import Stack from 'react-bootstrap/Stack';
 
 import config from './utils/config';
-import { handleResponse } from './utils';
 
+import { CreateQuizForm } from './Components/CreateQuizForm';
 import { HostQuiz } from './Components/HostQuiz';
 import { JoinQuizForm } from './Components/JoinQuizForm';
 
@@ -69,17 +69,9 @@ export function HostApp() {
         }
     }, [errorMessage]);
 
-    const createQuiz = () => {
-        handleResponse(websocket, (msg) => {
-            setQuizId(msg.quiz_id);
-            setHostId(msg.host_id);
-        });
-
-        websocket.send(JSON.stringify({
-			action: "create-quiz",
-            quiz_name: config.QUIZ_NAME,
-            make_default: true,
-		}));
+    const onCreatedQuiz = ({ quizId, hostId }) => {
+        setQuizId(quizId);
+        setHostId(hostId);
     };
 
     const onJoinedQuiz = ({ quizId, clientId, observe }) => {
@@ -94,7 +86,7 @@ export function HostApp() {
         { joinedQuiz
         ? <HostQuiz websocket={websocket} quizId={quizId} observe={observe} />
         : <Stack gap={3} className="col-md-5 mx-auto">
-            <Button className="mx-2" onClick={createQuiz}>Create Quiz</Button>
+            <CreateQuizForm websocket={websocket} onCreatedQuiz={onCreatedQuiz} />
             <JoinQuizForm websocket={websocket} quizId={quizId} clientId={hostId}
                 onJoinedQuiz={onJoinedQuiz} />
         </Stack>}
