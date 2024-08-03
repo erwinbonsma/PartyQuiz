@@ -212,7 +212,7 @@ class QuizMessageHandler(BaseMessageHandler):
 
         await self.send_message(ok_message())
 
-        if client_id != self.quiz.host_id:
+        if self.get_role(client_id) == ClientRole.Player:
             await self.notify_host("player-connected", {"client_id": client_id})
 
     async def disconnect(self):
@@ -237,7 +237,8 @@ class QuizMessageHandler(BaseMessageHandler):
 
         self.db.clear_quiz_for_connection(self.connection)
 
-        await self.notify_host("player-disconnected", {"client_id": client_id})
+        if self.get_role(client_id) == ClientRole.Player:
+            await self.notify_host("player-disconnected", {"client_id": client_id})
 
     async def register(self, player_name, avatar=None, quiz_id=None):
         """ Register for a quiz (as a player) """
