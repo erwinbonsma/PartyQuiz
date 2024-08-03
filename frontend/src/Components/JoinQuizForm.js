@@ -17,12 +17,13 @@ export function JoinQuizForm({ websocket, clientId, quizId, onJoinedQuiz }) {
         setValue("quizId", quizId);
     }, [clientId, quizId]);
 
-    const joinQuiz = (data) => {
+    const handleJoin = (asObserver) => ((data) => {
         console.info("Joining quiz");
         handleResponse(websocket, () => {
             onJoinedQuiz({
                 quizId: data.quizId,
-                clientId: data.clientId
+                clientId: data.clientId,
+                observe: asObserver,
             });
         }, (msg) => {
             setJoinError(msg.details || `Error code ${msg.error_code}`)
@@ -34,10 +35,10 @@ export function JoinQuizForm({ websocket, clientId, quizId, onJoinedQuiz }) {
             quiz_id: data.quizId,
             client_id: data.clientId,
 		}));
-    };
+    });
 
     return <>
-        <Form onSubmit={handleSubmit(joinQuiz)} noValidate className="mx-2">
+        <Form noValidate className="mx-2">
             <Form.Group as={Row} className="mb-3">
                 <Form.Label column sm={5}>Client ID</Form.Label>
                 <Col sm={7}>
@@ -60,7 +61,14 @@ export function JoinQuizForm({ websocket, clientId, quizId, onJoinedQuiz }) {
                     )}
                 </Col>
             </Form.Group>
-            <Button type="submit">Join Quiz</Button>
+            <Row className="justify-content-md-center">
+                <Col md="auto">
+                    <Button onClick={handleSubmit(handleJoin(false))}>Host Quiz</Button>
+                </Col>
+                <Col md="auto">
+                    <Button onClick={handleSubmit(handleJoin(true))}>Observe Quiz</Button>
+                </Col>
+            </Row>
             { joinError && <p>Error: {joinError}</p>}
         </Form>
     </>;
