@@ -74,8 +74,11 @@ def create_question(author_id, question, choices, answer):
 
 class QuizMessageHandler(BaseMessageHandler):
 
+    def is_root(self, client_id):
+        return (root_user := self.globals.root_user) is None or client_id == root_user
+
     def check_is_root(self, client_id):
-        if (root_user := self.globals.root_user) and client_id != root_user:
+        if not self.is_root(client_id):
             raise HandlerException("Root access required", ErrorCode.NotAllowed)
 
     async def set_root_user(self, user, old_user=None):
@@ -170,7 +173,7 @@ class QuizMessageHandler(BaseMessageHandler):
     async def notify_hosts(self, message):
         await self.broadcast(json.dumps(message), skip_roles=[ClientRole.Player])
 
-    async def create_quiz(self, name, host_id=None, make_default=False):
+    async def create_quiz(self, name, host_id=None, try_make_default=False):
         if host_id is None:
             host_id = create_id()
 
@@ -184,15 +187,14 @@ class QuizMessageHandler(BaseMessageHandler):
 
         self.logger.info(f"Created Quiz {quiz_id} with Host {host_id}")
 
-        if make_default:
-            self.check_is_root(host_id)
-            if not self.globals.set_default_quiz_id(quiz_id):
-                raise HandlerException(
-                    "Failed to make quiz default", ErrorCode.InternalServerError)
+        is_default = (try_make_default
+                      and self.is_root(host_id)
+                      and self.globals.set_default_quiz_id(quiz_id))
 
         return await self.send_message(ok_message({
             "quiz_id": quiz_id,
             "host_id": host_id,
+            "is_default": is_default,
         }))
 
     async def connect(self, client_id):
@@ -470,7 +472,7 @@ class QuizMessageHandler(BaseMessageHandler):
             return await self.create_quiz(
                 msg["quiz_name"],
                 host_id=msg.get("host_id"),
-                make_default=msg.get("make_default"))
+                try_make_default=msg.get("try_make_default"))
         if cmd == "register":
             return await self.register(
                 player_name=msg["player_name"],
