@@ -1,6 +1,6 @@
 {
-  "short_name": "React App",
-  "name": "Create React App Sample",
+  "short_name": "Party Quiz",
+  "name": "Interactive Multi-Player Multiple Choice Quiz",
   "icons": [
     {
       "src": "favicon.ico",
