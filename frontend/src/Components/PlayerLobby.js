@@ -24,7 +24,7 @@ export function PlayerLobby({ websocket, players, poolQuestions }) {
         return function cleanup() {
             websocket.removeEventListener('message', messageHandler);
         }
-    }, []);
+    }, [websocket]);
 
     return (<Container className="PlayerLobby my-3">
         <Row>{ Object.entries(players).map(([k, v]) =>

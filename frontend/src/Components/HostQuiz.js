@@ -132,7 +132,7 @@ export function HostQuiz({ websocket, quizId, quizName, hostId, observe }) {
         return function cleanup() {
             websocket.removeEventListener('message', messageHandler);
         }
-    }, []);
+    }, [websocket, hostId, quizId]);
 
     const onSelect = (key) => {
         if (collectionSize(hostConnections) > 1) {

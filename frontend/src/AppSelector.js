@@ -1,5 +1,5 @@
 import './App.css';
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 
 import Button from 'react-bootstrap/Button';
 import ButtonToolbar from 'react-bootstrap/ButtonToolbar';
@@ -9,16 +9,15 @@ import { PlayerApp } from './PlayerApp.js'
 
 import { getConfigSetting } from './utils';
 
+function getAppMode() {
+    const mode = getConfigSetting(document, 'cfg-app-mode');
+    console.info(`app-mode from document = ${mode}`);
+
+    return mode;
+}
+
 export function AppSelector() {
-    const [appMode, setAppMode] = useState();
-
-    // Get mode from HTML page. This is how it should work in production.
-    useEffect(() => {
-        const mode = getConfigSetting(document, 'cfg-app-mode');
-        console.info(`app-mode from document = ${mode}`);
-
-        setAppMode(mode);
-    }, []);
+    const [appMode, setAppMode] = useState(useMemo(getAppMode, [document]));
 
     return (<div className="App">
         { (appMode === "player"

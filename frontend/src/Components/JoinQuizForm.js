@@ -15,7 +15,7 @@ export function JoinQuizForm({ websocket, clientId, quizId, defaultQuizId, onJoi
     useEffect(() => {
         setValue("clientId", clientId);
         setValue("quizId", quizId);
-    }, [clientId, quizId]);
+    }, [clientId, quizId, setValue]);
 
     const watchedQuizId = watch("quizId");
     const isDefault = defaultQuizId && (watchedQuizId === defaultQuizId);

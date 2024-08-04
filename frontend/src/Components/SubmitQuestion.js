@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 
 import Button from 'react-bootstrap/Button';
@@ -9,24 +9,25 @@ import Row from 'react-bootstrap/Row';
 import config from '../utils/config';
 import { handleResponse, labelForChoiceIndex } from '../utils';
 
-export function SubmitQuestion({ websocket, quizId, question, enableCancel, onDone }) {
-    const {register, handleSubmit, setValue, formState: { errors }} = useForm();
-
-    const choices = Array(config.NUM_CHOICES).fill(0).map((_, idx) => ({
+function createChoiceArray() {
+    return Array(config.NUM_CHOICES).fill(0).map((_, idx) => ({
         id: idx + 1,
         label: labelForChoiceIndex(idx),
         fieldName: `choice_${idx + 1}`
     }));
+}
+
+export function SubmitQuestion({ websocket, quizId, question, enableCancel, onDone }) {
+    const {register, handleSubmit, setValue, formState: { errors }} = useForm();
+    const choices = useMemo(createChoiceArray, []);
 
     useEffect(() => {
         if (question) {
             setValue("question", question.question);
             choices.map((choice, idx) => setValue(choice.fieldName, question.choices[idx]));
             setValue("answer", question.answer);
-        } else {
-            setValue("answer", "");
         }
-    }, [question]);
+    }, [question, choices, setValue]);
 
     const onSubmit = (data) => {
         const question = {

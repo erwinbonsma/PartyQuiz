@@ -9,9 +9,17 @@ import { PlayQuiz } from './Components/PlayQuiz';
 import { QuizRegistration } from './Components/QuizRegistration';
 import { SubmitQuestion } from './Components/SubmitQuestion';
 
+function loadClientId() {
+    return loadValue("clientId");
+}
+
+function loadQuizId() {
+    return loadValue("quizId");
+}
+
 export function PlayerApp() {
-	const [clientId, setClientId] = useState(useMemo(() => loadValue("clientId"), []));
-    const [quizId, setQuizId] = useState(useMemo(() => loadValue("quizId"), []));
+	const [clientId, setClientId] = useState(useMemo(loadClientId, []));
+    const [quizId, setQuizId] = useState(useMemo(loadQuizId, []));
     const [quizName, setQuizName] = useState();
     const [joinedQuiz, setJoinedQuiz] = useState(false);
     const [submittedQuestion, setSubmittedQuestion] = useState(false);
@@ -42,14 +50,6 @@ export function PlayerApp() {
         return socket;
     }
 
-    const getWebsocket = (onOpen) => {
-        if (websocket) {
-            onOpen(websocket);
-        } else {
-            createWebsocket(onOpen);
-        }
-    };
-
 	useEffect(() => {
 		if (errorMessage || !quizId) {
 			return
@@ -70,22 +70,22 @@ export function PlayerApp() {
         }
 	}, [websocket, quizId, errorMessage]);
 
-    const fetchPoolQuestion = () => {
-        handleResponse(websocket, (msg) => {
-            setQuestion(msg.question);
-            setSubmittedQuestion(true);
-        });
-
-        websocket.send(JSON.stringify({
-            action: "get-pool-question",
-            quiz_id: quizId,
-        }));
-    }
-
     // Auto-join quiz (or re-join after disconnect)
     useEffect(() => {
         if (!websocket || !clientId || joinedQuiz) {
             return;
+        }
+
+        const fetchPoolQuestion = () => {
+            handleResponse(websocket, (msg) => {
+                setQuestion(msg.question);
+                setSubmittedQuestion(true);
+            });
+
+            websocket.send(JSON.stringify({
+                action: "get-pool-question",
+                quiz_id: quizId,
+            }));
         }
 
         handleResponse(websocket, (msg) => {
@@ -115,6 +115,14 @@ export function PlayerApp() {
         setSubmittedQuestion(true);
         setReviseQuestion(false);
     }
+
+    const getWebsocket = (onOpen) => {
+        if (websocket) {
+            onOpen(websocket);
+        } else {
+            createWebsocket(onOpen);
+        }
+    };
 
     return <div className="PlayerApp p-3">
         { joinedQuiz
