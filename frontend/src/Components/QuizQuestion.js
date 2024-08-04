@@ -1,10 +1,11 @@
+import { useState } from 'react';
 import Button from 'react-bootstrap/esm/Button';
 import Container from 'react-bootstrap/esm/Container';
 import Col from 'react-bootstrap/Col';
 import ProgressBar from 'react-bootstrap/ProgressBar';
 import Row from 'react-bootstrap/Row';
 
-import { labelForChoiceIndex, isNotEmpty } from '../utils';
+import { addToSet, labelForChoiceIndex, isNotEmpty } from '../utils';
 
 import { AnswerChoice } from './AnswerChoice';
 import { PlayerBadge } from './PlayerBadge';
@@ -12,14 +13,15 @@ import { PlayerBadge } from './PlayerBadge';
 export function QuizQuestion({
     websocket, quizId, players, poolQuestions, questions, questionId, isQuestionOpen, answers, observe
 }) {
-    const questionAuthors = Object.fromEntries(Object.entries(questions).map(
-        ([_, v]) => [v.author_id, true]
-    ));
+    const [skippedAuthors, setSkippedAuthors] = useState(new Set());
+    const [quarantinedQuestion, setQuarantinedQuestion] = useState();
+
+    const questionAuthors = new Set(Object.entries(questions).map(([_, v]) => v.author_id));
     const availableQuestions = Object.values(poolQuestions).filter((question) => (
         // Question by author should not already have been asked
-        !questionAuthors[question.author_id]
-        // Author should be online
-        && isNotEmpty(players[question.author_id].connections)
+        !questionAuthors.has(question.author_id)
+        // Author should not have failed quarantine check
+        && !skippedAuthors.has(question.author_id)
     ));
 
     const closeQuestion = () => {
@@ -28,17 +30,34 @@ export function QuizQuestion({
             quiz_id: quizId
         }));
     };
-    const gotoNextQuestion = () => {
-        const nextQuestion = availableQuestions[0];
-
+    const openQuestion = (question) => {
         websocket.send(JSON.stringify({
             action: "open-question",
             quiz_id: quizId,
-            ...nextQuestion
+            ...question
         }));
+    }
+    const gotoNextQuestion = () => {
+        const nextQuestion = availableQuestions[0];
+        const isAuthorOnline = isNotEmpty(players[nextQuestion.author_id].connections);
+
+        if (isAuthorOnline) {
+            openQuestion(nextQuestion);
+        } else {
+            setQuarantinedQuestion(nextQuestion);
+        }
     };
 
-    const q = questions[questionId];
+    const onQuarantinePass = () => {
+        setQuarantinedQuestion(undefined);
+        openQuestion(quarantinedQuestion);
+    };
+    const onQuarantineSkip = () => {
+        setSkippedAuthors(c => addToSet(c, quarantinedQuestion.author_id));
+        setQuarantinedQuestion(undefined);
+    };
+
+    const q = quarantinedQuestion || questions[questionId];
     const numPlayers = Object.keys(players).length;
     const a = answers[questionId] || {};
     const numAnswers = Object.keys(a).length;
@@ -49,26 +68,32 @@ export function QuizQuestion({
             <Container className="p-3">
                 <Row>
                     <Col md={4} lg={3}/>
-                    <Col md={4} lg={6} ><h1>Question {questionId}</h1></Col>
-                    <Col md={4} lg={3} ><PlayerBadge
-                                  playerName={ players[q.author_id].name }
-                                  avatar={ players[q.author_id].avatar } /></Col>
+                    <Col md={4} lg={6} >
+                        { quarantinedQuestion
+                        ? <h1>Candidate Question</h1>
+                        : <h1>Question {questionId}</h1>}</Col>
+                    <Col md={4} lg={3} >
+                        <PlayerBadge playerName={ players[q.author_id].name }
+                         avatar={ players[q.author_id].avatar }
+                         status={ quarantinedQuestion ? { isPresent: false } : undefined }/>
+                    </Col>
                 </Row>
                 <Row>
                     <div className="Question">{q.question}</div>
                 </Row>
-                { isQuestionOpen
+                { isQuestionOpen || quarantinedQuestion
                 ? <>
                     <Row>{ q.choices.map((choice, idx) =>
                         <Col lg={6} key={idx} className="p-2">
                             <AnswerChoice label={labelForChoiceIndex(idx)} value={choice}/>
                         </Col>
                     )}</Row>
-                    <Row>
-                        <Col>
-                            <ProgressBar now={100 * numAnswers / numPlayers} label={`${numAnswers}/${numPlayers}`}/>
-                        </Col>
-                    </Row>
+                    { isQuestionOpen &&
+                        <Row>
+                            <Col>
+                                <ProgressBar now={100 * numAnswers / numPlayers} label={`${numAnswers}/${numPlayers}`}/>
+                            </Col>
+                        </Row>}
                 </>
                 : q.choices.map((choice, idx) => {
                     const n = Object.values(a).filter((answer) => (answer === idx + 1)).length;
@@ -83,10 +108,20 @@ export function QuizQuestion({
                 })}
             </Container>
         </>}
-        { !observe && ( isQuestionOpen
-            ? <Button onClick={closeQuestion}>Close Question</Button>
-            : <Button onClick={gotoNextQuestion} disabled={availableQuestions.length === 0}>
-                {nextQuestionLabel}
-            </Button>)}
+        { !observe && (
+            quarantinedQuestion
+            ? <Row className="justify-content-md-center">
+                <Col md="auto">
+                    <Button onClick={onQuarantinePass}>Open Question</Button>
+                </Col>
+                <Col md="auto">
+                    <Button onClick={onQuarantineSkip}>Skip Question</Button>
+                </Col>
+            </Row>
+            : ( isQuestionOpen
+                ? <Button onClick={closeQuestion}>Close Question</Button>
+                : <Button onClick={gotoNextQuestion} disabled={availableQuestions.length === 0}>
+                    {nextQuestionLabel}
+                </Button>))}
     </div>);
 }
