@@ -5,7 +5,7 @@ import ToggleButton from 'react-bootstrap/ToggleButton';
 
 import { handleResponse, labelForChoiceIndex } from '../utils';
 
-export function PlayQuiz({ websocket, quizId, quizName, onReviseQuestion }) {
+export function PlayQuiz({ websocket, quizId, onReviseQuestion }) {
     const [questionId, setQuestionId] = useState(0);
     const [isQuestionOpen, setQuestionIsOpen] = useState(false);
     const [answer, setAnswer] = useState();
@@ -67,9 +67,8 @@ export function PlayQuiz({ websocket, quizId, quizName, onReviseQuestion }) {
 
     const canAnswer = isQuestionOpen && !didAnswer;
 
-    return <>
-        <h1 className="PageHeader">{quizName}</h1>
-        { questionId > 0
+    return (
+        questionId > 0
         ? <>
             <h2>Question {questionId}</h2>
             { choices
@@ -94,6 +93,5 @@ export function PlayQuiz({ websocket, quizId, quizName, onReviseQuestion }) {
         : <>
             <h4>Waiting for quiz to start...</h4>
             <Button onClick={onReviseQuestion}>Revise Question</Button>
-        </>}
-    </>;
+        </>);
 }

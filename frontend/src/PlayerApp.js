@@ -118,13 +118,16 @@ export function PlayerApp() {
 
     return <div className="PlayerApp p-3">
         { joinedQuiz
-        ? ( (submittedQuestion && !reviseQuestion)
-            ? (websocket && <PlayQuiz websocket={websocket} quizId={quizId} quizName={quizName}
+        ? <>
+            <h1 className="PageHeader">{quizName}</h1>
+            { (submittedQuestion && !reviseQuestion)
+            ? (websocket && <PlayQuiz websocket={websocket} quizId={quizId}
                              onReviseQuestion={() => setReviseQuestion(true)}/>)
             : (websocket && <SubmitQuestion websocket={websocket} quizId={quizId}
                              question={question}
                              onDone={onSubmittedQuestion}
-                             enableCancel={reviseQuestion} />))
+                             enableCancel={reviseQuestion} />)}
+        </>
         : ( quizId
             ? <p>Registered for quiz</p>
             : <QuizRegistration getWebsocket={getWebsocket} clientId={clientId}
