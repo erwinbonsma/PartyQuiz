@@ -55,7 +55,7 @@ class BackendStack(Stack):
             self, 'DisconnectLambda',
             **shared_lambda_cfg,
             code=_lambda.Code.from_asset('../backend/src'),
-            handler='WebSocketHandlers.handle_disconnect',
+            handler='WebSocketHandler.handle_disconnect',
         )
         main_table.grant_read_write_data(disconnect_handler)
 
