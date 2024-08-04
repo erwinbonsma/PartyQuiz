@@ -7,7 +7,7 @@ You can use `wscat` to interactively test.
 
 Create a quiz. This makes you the host.
 ```
-{ "action": "create-quiz", "quiz_name": "Test Quiz", "make_default": true }
+{ "action": "create-quiz", "quiz_name": "Test Quiz", "try_make_default": true }
 ```
 
 Register for a quiz, as a player.
