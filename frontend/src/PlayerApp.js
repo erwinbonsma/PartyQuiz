@@ -12,6 +12,7 @@ import { SubmitQuestion } from './Components/SubmitQuestion';
 export function PlayerApp() {
 	const [clientId, setClientId] = useState(useMemo(() => loadValue("clientId"), []));
     const [quizId, setQuizId] = useState(useMemo(() => loadValue("quizId"), []));
+    const [quizName, setQuizName] = useState();
     const [joinedQuiz, setJoinedQuiz] = useState(false);
     const [submittedQuestion, setSubmittedQuestion] = useState(false);
     const [reviseQuestion, setReviseQuestion] = useState(false);
@@ -87,9 +88,10 @@ export function PlayerApp() {
             return;
         }
 
-        handleResponse(websocket, () => {
+        handleResponse(websocket, (msg) => {
             setErrorMessage(undefined);
             setJoinedQuiz(true);
+            setQuizName(msg.quiz_name);
             fetchPoolQuestion();
         });
 
@@ -117,7 +119,7 @@ export function PlayerApp() {
     return <div className="PlayerApp p-3">
         { joinedQuiz
         ? ( (submittedQuestion && !reviseQuestion)
-            ? (websocket && <PlayQuiz websocket={websocket} quizId={quizId}
+            ? (websocket && <PlayQuiz websocket={websocket} quizId={quizId} quizName={quizName}
                              onReviseQuestion={() => setReviseQuestion(true)}/>)
             : (websocket && <SubmitQuestion websocket={websocket} quizId={quizId}
                              question={question}

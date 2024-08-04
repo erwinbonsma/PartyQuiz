@@ -78,8 +78,8 @@ export function QuizQuestion({
                     <Col md={4} lg={3}/>
                     <Col md={4} lg={6} >
                         { quarantinedQuestion
-                        ? <h1>Candidate Question</h1>
-                        : <h1>Question {questionId}</h1>}</Col>
+                        ? <h2>Candidate Question</h2>
+                        : <h2>Question {questionId}</h2>}</Col>
                     <Col md={4} lg={3} >
                         <PlayerBadge playerName={ players[q.author_id].name }
                          avatar={ players[q.author_id].avatar }

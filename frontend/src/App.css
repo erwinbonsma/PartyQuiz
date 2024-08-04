@@ -18,6 +18,12 @@ p {
     text-align: left;
 }
 
+.PageHeader {
+    background-color: #bbeebb;
+    margin-bottom: 10px;
+    padding: 5px;
+}
+
 .PlayerBadge {
     background-color: #bbeebb;
 }
@@ -42,6 +48,3 @@ Button {
     margin-bottom: 5px;
 }
 
-.App-link {
-  color: #61dafb;
-}

@@ -154,17 +154,17 @@ export function HostQuiz({ websocket, quizId, quizName, hostId, observe }) {
     };
 
     return (<Tab.Container className="HostQuiz" defaultActiveKey="lobby" activeKey={currentTab} onSelect={onSelect}>
-        <Row><h1>{quizName}</h1></Row>
-        <Row>
-            <Col xs={9}>
-                <Nav variant="tabs" defaultActiveKey="lobby">
-                    <Nav.Item><Nav.Link eventKey="lobby">Lobby</Nav.Link></Nav.Item>
-                    <Nav.Item><Nav.Link eventKey="question">Question</Nav.Link></Nav.Item>
-                    <Nav.Item><Nav.Link eventKey="scores">Scores</Nav.Link></Nav.Item>
-                </Nav>
-            </Col>
+        <Row className="PageHeader">
+            <Col xs={9} lg={{span: 6, offset: 3}}><h1>{quizName}</h1></Col>
             <Col xs={3}>Quiz ID: {quizId}</Col>
         </Row>
+        { !observe && <Row>
+            <Col><Nav variant="tabs" defaultActiveKey="lobby">
+                <Nav.Item><Nav.Link eventKey="lobby">Lobby</Nav.Link></Nav.Item>
+                <Nav.Item><Nav.Link eventKey="question">Question</Nav.Link></Nav.Item>
+                <Nav.Item><Nav.Link eventKey="scores">Scores</Nav.Link></Nav.Item>
+            </Nav></Col>
+        </Row>}
         <Row>
             <Tab.Content>
                 <Tab.Pane eventKey="lobby">

@@ -5,7 +5,7 @@ import ToggleButton from 'react-bootstrap/ToggleButton';
 
 import { handleResponse, labelForChoiceIndex } from '../utils';
 
-export function PlayQuiz({ websocket, quizId, onReviseQuestion }) {
+export function PlayQuiz({ websocket, quizId, quizName, onReviseQuestion }) {
     const [questionId, setQuestionId] = useState(0);
     const [isQuestionOpen, setQuestionIsOpen] = useState(false);
     const [answer, setAnswer] = useState();
@@ -67,9 +67,11 @@ export function PlayQuiz({ websocket, quizId, onReviseQuestion }) {
 
     const canAnswer = isQuestionOpen && !didAnswer;
 
-    return (questionId > 0
+    return <>
+        <h1 className="PageHeader">{quizName}</h1>
+        { questionId > 0
         ? <>
-            <h1>Question {questionId}</h1>
+            <h2>Question {questionId}</h2>
             { choices
             && <Stack gap={3} className="col-md-5 mx-auto">
                 { choices.map((choice, idx) => (<ToggleButton
@@ -92,5 +94,6 @@ export function PlayQuiz({ websocket, quizId, onReviseQuestion }) {
         : <>
             <h4>Waiting for quiz to start...</h4>
             <Button onClick={onReviseQuestion}>Revise Question</Button>
-        </>);
+        </>}
+    </>;
 }
