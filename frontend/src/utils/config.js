@@ -9,6 +9,9 @@ const configSettings = {
 
     QSCORE_MIN_ANSWERS: 5,
     QSCORE_MAX: 5,
+
+    QUESTION_PREVIEW_LIMIT: 3,
+    QUESTION_PREVIEW_TIME_MS: 3000,
 };
 
 export default configSettings;

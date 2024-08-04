@@ -70,3 +70,14 @@ export function loadValue(name) {
 
     return value;
 }
+
+export function getRandomInt(max) {
+    return Math.floor(Math.random() * max);
+}
+
+export function getRandomKey(object) {
+    const keys = Object.keys(object);
+    if (keys.length === 0) return;
+
+    return keys[getRandomInt(keys.length)];
+}
