@@ -173,13 +173,17 @@ class QuizMessageHandler(BaseMessageHandler):
     async def notify_hosts(self, message):
         await self.broadcast(json.dumps(message), skip_roles=[ClientRole.Player])
 
-    async def create_quiz(self, name, host_id=None, try_make_default=False):
+    async def create_quiz(self, quiz_name, host_id=None, try_make_default=False):
+        check_string_value("name", quiz_name, Config.RANGE_NAME_LENGTH)
+
         if host_id is None:
             host_id = create_id()
+        else:
+            check_string_value("host_id", host_id, Config.RANGE_ID_LENGTH)
 
         for _ in range(Config.MAX_ATTEMPTS):  # Multiple attempts to handle ID clash
             quiz_id = create_id()
-            if self.db.create_quiz(quiz_id, host_id, name):
+            if self.db.create_quiz(quiz_id, host_id, quiz_name):
                 break
         else:
             raise HandlerException(
@@ -219,7 +223,9 @@ class QuizMessageHandler(BaseMessageHandler):
                 ErrorCode.InternalServerError
             )
 
-        await self.send_message(ok_message())
+        await self.send_message(ok_message({
+            "quiz_name": self.quiz.name
+        }))
 
         await self.notify_host("client-connected", {
             "client_id": client_id,
