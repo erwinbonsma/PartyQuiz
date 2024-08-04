@@ -80,11 +80,11 @@ export function QuizQuestion({
                         { quarantinedQuestion
                         ? <h2>Candidate Question</h2>
                         : <h2>Question {questionId}</h2>}</Col>
-                    <Col md={4} lg={3} >
+                    { players[q.author_id] && <Col md={4} lg={3} >
                         <PlayerBadge playerName={ players[q.author_id].name }
                          avatar={ players[q.author_id].avatar }
                          status={ quarantinedQuestion ? { isPresent: false } : undefined }/>
-                    </Col>
+                    </Col>}
                 </Row>
                 <Row>
                     <div className="Question">{q.question}</div>
