@@ -44,8 +44,12 @@ export function removeFromSet(elems, elem) {
     return newElems;
 }
 
+export function collectionSize(elems) {
+    return (elems.size || elems.length || 0);
+}
+
 export function isNotEmpty(elems) {
-    return (elems.size || elems.length) > 0;
+    return collectionSize(elems) > 0;
 }
 
 export function storeValue(name, value) {

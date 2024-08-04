@@ -5,7 +5,7 @@ import Nav from 'react-bootstrap/Nav';
 import Row from 'react-bootstrap/Row';
 import Tab from 'react-bootstrap/Tab';
 
-import { removeFromSet, addToSet } from '../utils';
+import { removeFromSet, addToSet, collectionSize } from '../utils';
 
 import { QuizScores } from './QuizScores';
 import { PlayerLobby } from './PlayerLobby';
@@ -135,7 +135,7 @@ export function HostQuiz({ websocket, quizId, quizName, hostId, observe }) {
     }, []);
 
     const onSelect = (key) => {
-        if (hostConnections.size > 1) {
+        if (collectionSize(hostConnections) > 1) {
             // There are multiple host connections. Let all switch views via back-end
             websocket.send(JSON.stringify({
                 action: "notify-hosts",
