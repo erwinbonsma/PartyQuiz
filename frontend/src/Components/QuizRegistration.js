@@ -29,7 +29,7 @@ export function QuizRegistration({ getWebsocket, playerName, quizId, onDone }) {
 
             const avatar = (numAvatarOptions > 1
                 ? data.avatar
-                : (numAvatarOptions === 1) ? avatarOptions.keys()[0] : undefined
+                : (numAvatarOptions === 1) ? Object.keys(avatarOptions)[0] : undefined
             );
 
             websocket.send(JSON.stringify({
