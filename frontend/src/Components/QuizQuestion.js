@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Button from 'react-bootstrap/esm/Button';
 import Container from 'react-bootstrap/esm/Container';
 import Col from 'react-bootstrap/Col';
@@ -49,13 +49,21 @@ export function QuizQuestion({
     };
 
     const onQuarantinePass = () => {
-        setQuarantinedQuestion(undefined);
         openQuestion(quarantinedQuestion);
+
+        // Note: only unsetting quarantine question on confirmation from backend.
+        // This avoids temporary flicker to previous question.
     };
     const onQuarantineSkip = () => {
         setSkippedAuthors(c => addToSet(c, quarantinedQuestion.author_id));
         setQuarantinedQuestion(undefined);
     };
+
+    useEffect(() => {
+        if (isQuestionOpen && quarantinedQuestion) {
+            setQuarantinedQuestion(undefined);
+        }
+    }, [isQuestionOpen, quarantinedQuestion]);
 
     const q = quarantinedQuestion || questions[questionId];
     const numPlayers = Object.keys(players).length;
