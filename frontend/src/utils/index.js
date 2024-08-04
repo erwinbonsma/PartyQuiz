@@ -1,6 +1,7 @@
 export function handleResponse(websocket, onSuccess, onFailure) {
     const handleMessage = (event) => {
         const msg = JSON.parse(event.data);
+        console.info({ msg });
 
         if (msg.type === "response") {
             if (msg.result === "ok") {
@@ -61,7 +62,7 @@ export function loadValue(name) {
     const prefix = `${name}=`;
     const fields = decodeURIComponent(document.cookie).split(';');
     const values = (fields.map(v => v.trim())
-                    .filter(v => v.indexOf(prefix) == 0)
+                    .filter(v => v.indexOf(prefix) === 0)
                     .map(v => v.substring(prefix.length)));
 
     const value = values.length > 0 ? values[0] : undefined;

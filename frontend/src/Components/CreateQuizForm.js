@@ -6,7 +6,6 @@ import Col from 'react-bootstrap/Col';
 import Form from 'react-bootstrap/Form';
 import Row from 'react-bootstrap/Row';
 
-import config from '../utils/config';
 import { handleResponse } from '../utils';
 
 export function CreateQuizForm({ websocket, onCreatedQuiz }) {

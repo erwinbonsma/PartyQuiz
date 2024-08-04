@@ -11,7 +11,7 @@ export function PlayerBadge({ playerName, avatar, status }) {
     return <Container className="PlayerBadge">
         <Row className="align-items-center px-2 py-1">
             <Col xs="auto" className="p-0">{avatar &&
-                <img src={`${iconPath}${avatar}`} height={32} width={32} />}</Col>
+                <img src={`${iconPath}${avatar}`} height={32} width={32} alt="" />}</Col>
             <Col className="PlayerName">{playerName}</Col>
             { status &&
                 <Col xs={1} className="p-0">
