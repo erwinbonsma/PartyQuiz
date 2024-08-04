@@ -19,57 +19,44 @@ export function HostApp() {
 	const [errorMessage, setErrorMessage] = useState();
 	const [websocket, setWebsocket] = useState();
 
+    const createWebsocket = () => {
+        // Create WebSocket connection.
+		const socket = new WebSocket(config.SERVICE_ENDPOINT);
+
+		// Connection opened
+		socket.addEventListener('open', () => {
+			console.log("Opened websocket");
+			setWebsocket(socket);
+		});
+
+		const unsetSocket = () => {
+			setErrorMessage("Disconnected from server");
+			setWebsocket(undefined);
+            setJoinedQuiz(false);
+		}
+		socket.addEventListener('close', unsetSocket);
+		socket.addEventListener('error', unsetSocket);
+
+        return socket;
+    }
+
     useEffect(() => {
         // Create websocket when not yet set, and there is no error.
         // User can try to recreate socket after failure by clearing error.
-        if (websocket || errorMessage) {
+        if (errorMessage) {
 			return
 		}
 
-        console.log("Opening websocket");
-        let cleanupInvoked = false;
-        let socket = new WebSocket(config.SERVICE_ENDPOINT);
-
-        const unsetSocket = () => {
-            if (socket) {
-                console.info("Disconnected from server");
+        if (!websocket) {
+            createWebsocket();
+        } else {
+            return function cleanup() {
+                console.log("Closing websocket");
                 setWebsocket(undefined);
-                setJoinedQuiz(false);
-                // Clear (to avoid trigger by clean-up after error)
-                socket = undefined;
+                websocket.close();
             }
         }
-        const closeSocket = (reason) => {
-            console.log(`Closing websocket (${reason})`);
-            socket?.close();
-        }
-
-        // Add this before socket is opened, as it also fires when there is a
-        // failure to open the socket.
-        socket.addEventListener('error', () => {
-            if (!cleanupInvoked) {
-                setErrorMessage("Disconnected from server");
-                closeSocket("error");
-            }
-        });
-
-        // Connection opened
-        socket.addEventListener('open', () => {
-            if (cleanupInvoked) {
-                // Ignore open when this happened after cleanup.
-                // This can happen in development, where useEffect is invoked twice.
-            }
-
-            console.log("Opened websocket");
-            setWebsocket(socket);
-            socket.addEventListener('close', unsetSocket);
-        });
-
-        return function cleanup() {
-            cleanupInvoked = true;
-            closeSocket("cleanup");
-        }
-    }, [errorMessage]);
+    }, [websocket, errorMessage])
 
     const onCreatedQuiz = ({ quizId, hostId, isDefault }) => {
         setQuizId(quizId);
@@ -89,14 +76,15 @@ export function HostApp() {
     }
 
     return (<div className="HostApp p-3">
-        { joinedQuiz
-        ? <HostQuiz websocket={websocket} quizId={quizId} quizName={quizName} hostId={hostId} observe={observe} />
-        : <Stack gap={4} className="col-lg-9 col-xl-6 mx-auto">
-            <h1>Quiz Host Control Center</h1>
-            <CreateQuizForm websocket={websocket} onCreatedQuiz={onCreatedQuiz} />
-            <JoinQuizForm websocket={websocket} quizId={quizId} clientId={hostId} defaultQuizId={defaultQuizId}
-                onJoinedQuiz={onJoinedQuiz} />
-        </Stack>}
+        { websocket &&
+            ( joinedQuiz
+            ? <HostQuiz websocket={websocket} quizId={quizId} quizName={quizName} hostId={hostId} observe={observe} />
+            : <Stack gap={4} className="col-lg-9 col-xl-6 mx-auto">
+                <h1>Quiz Host Control Center</h1>
+                <CreateQuizForm websocket={websocket} onCreatedQuiz={onCreatedQuiz} />
+                <JoinQuizForm websocket={websocket} quizId={quizId} clientId={hostId} defaultQuizId={defaultQuizId}
+                    onJoinedQuiz={onJoinedQuiz} />
+            </Stack>)}
         { errorMessage
         && <><p>Error: {errorMessage}</p><Button onClick={() => setErrorMessage('')}>Retry</Button></> }
     </div>);
