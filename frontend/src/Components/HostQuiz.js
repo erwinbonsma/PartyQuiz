@@ -11,7 +11,7 @@ import { QuizScores } from './QuizScores';
 import { PlayerLobby } from './PlayerLobby';
 import { QuizQuestion } from './QuizQuestion';
 
-export function HostQuiz({ websocket, quizId, hostId, observe }) {
+export function HostQuiz({ websocket, quizId, quizName, hostId, observe }) {
     const [players, setPlayers] = useState({});
     const [hostConnections, setHostConnections] = useState([]);
     const [poolQuestions, setPoolQuestions] = useState({});
@@ -154,6 +154,7 @@ export function HostQuiz({ websocket, quizId, hostId, observe }) {
     };
 
     return (<Tab.Container className="HostQuiz" defaultActiveKey="lobby" activeKey={currentTab} onSelect={onSelect}>
+        <Row><h1>{quizName}</h1></Row>
         <Row>
             <Col xs={9}>
                 <Nav variant="tabs" defaultActiveKey="lobby">

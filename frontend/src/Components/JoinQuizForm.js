@@ -22,9 +22,10 @@ export function JoinQuizForm({ websocket, clientId, quizId, defaultQuizId, onJoi
 
     const handleJoin = (asObserver) => ((data) => {
         console.info("Joining quiz");
-        handleResponse(websocket, () => {
+        handleResponse(websocket, (msg) => {
             onJoinedQuiz({
                 quizId: data.quizId,
+                quizName: msg.quiz_name,
                 clientId: data.clientId,
                 observe: asObserver,
             });
