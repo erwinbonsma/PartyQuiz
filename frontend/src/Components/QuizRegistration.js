@@ -44,7 +44,7 @@ export function QuizRegistration({ getWebsocket, playerName, quizId, onDone }) {
     };
 
     return <>
-        <h1>Registration</h1>
+        <h1>Quiz Registration</h1>
         <Form onSubmit={handleSubmit(onSubmit)} noValidate className="mx-2">
             <Form.Group as={Row} className="mb-3">
                 <Form.Label column sm={5}>Name</Form.Label>

@@ -50,10 +50,10 @@ export function QuizScores({ players, questions, answers }) {
     return <Container>
         <Row>
             <Col xl={6}>
-                <ScoreTable players={players} scores={scores} header="Answers" maxSize={5} />
+                <ScoreTable players={players} scores={scores} header="Answer Score" maxSize={5} />
             </Col>
             <Col xl={6}>
-                <ScoreTable players={players} scores={totalScores} header="Total" maxSize={5} />
+                <ScoreTable players={players} scores={totalScores} header="Total Score" maxSize={5} />
             </Col>
         </Row>
     </Container>
