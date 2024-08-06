@@ -101,7 +101,7 @@ export function PlayerApp() {
             quiz_id: quizId,
             client_id: clientId
 		}));
-    }, [websocket, quizId, joinedQuiz, quizId]);
+    }, [websocket, clientId, quizId, joinedQuiz, quizId]);
 
     const onRegistrationDone = ({ clientId, quizId, playerName }) => {
         setQuizId(quizId);
