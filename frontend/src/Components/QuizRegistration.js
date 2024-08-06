@@ -7,7 +7,7 @@ import Row from 'react-bootstrap/Row';
 
 import { getConfigSetting, getConfigSettings, handleResponse } from '../utils';
 
-export function QuizRegistration({ getWebsocket, playerName, quizId, onDone }) {
+export function QuizRegistration({ getWebsocket, playerName, clientId, quizId, onDone }) {
     const {register, handleSubmit, formState: { errors }} = useForm();
 
     const avatarOptions = Object.fromEntries(
@@ -24,7 +24,13 @@ export function QuizRegistration({ getWebsocket, playerName, quizId, onDone }) {
     const onSubmit = (data) => {
         const onRegister = (websocket) => {
             handleResponse(websocket, (msg) => {
-                onDone(msg.client_id, msg.quiz_id);
+                const args = {
+                    clientId: msg.client_id,
+                    quizId: msg.quiz_id,
+                    playerName: data.name,
+                };
+                console.info("Player registered:", args);
+                onDone(args);
             });
 
             const avatar = (numAvatarOptions > 1
@@ -35,6 +41,7 @@ export function QuizRegistration({ getWebsocket, playerName, quizId, onDone }) {
             websocket.send(JSON.stringify({
                 action: "register",
                 quiz_id: quizId,
+                client_id: clientId,
                 player_name: data.name,
                 avatar: avatar,
             }));

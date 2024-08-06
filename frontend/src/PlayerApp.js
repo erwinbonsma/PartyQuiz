@@ -13,13 +13,14 @@ function loadClientId() {
     return loadValue("clientId");
 }
 
-function loadQuizId() {
-    return loadValue("quizId");
+function loadPlayerName() {
+    return loadValue("playerName");
 }
 
 export function PlayerApp() {
 	const [clientId, setClientId] = useState(useMemo(loadClientId, []));
-    const [quizId, setQuizId] = useState(useMemo(loadQuizId, []));
+    const [playerName, setPlayerName] = useState(useMemo(loadPlayerName, []));
+    const [quizId, setQuizId] = useState();
     const [quizName, setQuizName] = useState();
     const [joinedQuiz, setJoinedQuiz] = useState(false);
     const [submittedQuestion, setSubmittedQuestion] = useState(false);
@@ -72,7 +73,7 @@ export function PlayerApp() {
 
     // Auto-join quiz (or re-join after disconnect)
     useEffect(() => {
-        if (!websocket || !clientId || joinedQuiz) {
+        if (!websocket || !quizId || joinedQuiz) {
             return;
         }
 
@@ -100,14 +101,15 @@ export function PlayerApp() {
             quiz_id: quizId,
             client_id: clientId
 		}));
-    }, [websocket, clientId, joinedQuiz, quizId]);
+    }, [websocket, quizId, joinedQuiz, quizId]);
 
-    const onRegistrationDone = (clientId, quizId) => {
-        setClientId(clientId);
+    const onRegistrationDone = ({ clientId, quizId, playerName }) => {
         setQuizId(quizId);
+        setClientId(clientId);
+        setPlayerName(playerName);
 
         storeValue("clientId", clientId);
-        storeValue("quizId", quizId);
+        storeValue("playerName", playerName);
     }
     const onSubmittedQuestion = (question) => {
         setQuestion(question);
@@ -138,7 +140,7 @@ export function PlayerApp() {
         </>
         : ( quizId
             ? <p>Registered for quiz</p>
-            : <QuizRegistration getWebsocket={getWebsocket} clientId={clientId}
+            : <QuizRegistration getWebsocket={getWebsocket} clientId={clientId} playerName={playerName}
                onDone={onRegistrationDone} />)}
         { errorMessage
         && <><p>Error: {errorMessage}</p><Button onClick={() => setErrorMessage('')}>Retry</Button></> }
