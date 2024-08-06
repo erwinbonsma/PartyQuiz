@@ -14,7 +14,8 @@ export function PlayerLobby({ players, poolQuestions, websocket, observe }) {
     const [enableQuestionPreview, setEnableQuestionPreview] = useState(false);
 
     useEffect(() => {
-        if (!enableQuestionPreview || poolQuestions.length < config.QUESTION_PREVIEW_LIMIT) {
+        const numPoolQuestions = Object.keys(poolQuestions).length;
+        if (!enableQuestionPreview || numPoolQuestions < config.QUESTION_PREVIEW_LIMIT) {
             setPreviewQuestion(undefined);
             return;
         }
@@ -64,7 +65,7 @@ export function PlayerLobby({ players, poolQuestions, websocket, observe }) {
         )}</Row>
         <Row className="pt-3">
             { !observe && <Col md={3}><Form>
-                <Form.Check type="switch" label="Preview questions" checked={enableQuestionPreview}
+                <Form.Check type="switch" label="Preview questions" defaultChecked={enableQuestionPreview}
                  onClick={togglePreview}
                 />
             </Form></Col>}
