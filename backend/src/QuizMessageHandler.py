@@ -259,7 +259,7 @@ class QuizMessageHandler(BaseMessageHandler):
             "connection": self.connection,
         })
 
-    async def register(self, player_name, avatar=None, quiz_id=None):
+    async def register(self, player_name, client_id=None, avatar=None, quiz_id=None):
         """ Register for a quiz (as a player) """
         check_string_value("name", player_name, Config.RANGE_NAME_LENGTH)
 
@@ -269,13 +269,19 @@ class QuizMessageHandler(BaseMessageHandler):
                 ErrorCode.InternalServerError)
 
         self.fetch_quiz(quiz_id)
-        if len(self.quiz.players) >= Config.MAX_PLAYERS_PER_QUIZ:
+        if client_id is None:
+            client_id = create_id()
+        else:
+            check_string_value("client_id", client_id, Config.RANGE_ID_LENGTH)
+
+        if client_id in self.quiz.players:
+            self.logger.info(f"Update registration of client {client_id} for Quiz {quiz_id}")
+        elif len(self.quiz.players) >= Config.MAX_PLAYERS_PER_QUIZ:
             raise HandlerException(
                 f"Player limit reached for Quiz {quiz_id}",
                 ErrorCode.PlayerLimitReached)
 
-        client_id = create_id()
-        if not self.quiz.add_player(client_id, player_name, avatar):
+        if not self.quiz.add_or_update_player(client_id, player_name, avatar):
             raise HandlerException(
                 f"Failed to add player {player_name} as {client_id}",
                 ErrorCode.InternalServerError)
@@ -493,7 +499,8 @@ class QuizMessageHandler(BaseMessageHandler):
             return await self.register(
                 player_name=msg["player_name"],
                 avatar=msg.get("avatar"),
-                quiz_id=msg.get("quiz_id"))
+                quiz_id=msg.get("quiz_id"),
+                client_id=msg.get("client_id"))
 
         if (quiz_id := msg.get("quiz_id")) is None:
             # To avoid extra look-up, best if client provides quiz_id in

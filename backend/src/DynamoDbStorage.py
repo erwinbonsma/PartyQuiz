@@ -286,8 +286,7 @@ class DynamoDbQuiz:
     def get_client_id(self, connection) -> str:
         return self.clients.get(connection)
 
-    def add_player(self, client_id: str, name: str, avatar: Optional[str] = None
-                   ) -> dict[str, Player]:
+    def add_or_update_player(self, client_id: str, name: str, avatar: Optional[str] = None) -> dict[str, Player]:
         try:
             item = {
                 "PKEY": {"S": f"Quiz#{self.quiz_id}"},
@@ -299,8 +298,7 @@ class DynamoDbQuiz:
 
             self.client.put_item(
                 TableName=Config.MAIN_TABLE,
-                Item=item,
-                ConditionExpression="attribute_not_exists(PKEY)"
+                Item=item
             )
 
             self.players[client_id] = Player(name, avatar)
